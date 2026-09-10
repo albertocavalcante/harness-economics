@@ -1,8 +1,56 @@
 default: check
 
 # Run every repository check
-check: leaks links sources verify-measurements
+check: leaks links sources verify-measurements lint fmt-check
     @echo "✓ all checks passed"
+
+# Static-analyse every shell script
+lint:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v shellcheck > /dev/null 2>&1; then
+      echo "✗ lint: shellcheck not installed (brew install shellcheck)" >&2
+      exit 1
+    fi
+    mapfile -t files < <(git ls-files '*.sh')
+    if [ "${#files[@]}" -eq 0 ]; then
+      echo "✓ lint: no shell scripts to check"
+      exit 0
+    fi
+    if ! shellcheck -S warning "${files[@]}"; then
+      echo "✗ lint: shellcheck reported issues above" >&2
+      exit 1
+    fi
+    echo "✓ lint: ${#files[@]} script(s) clean"
+
+# Rewrite every shell script in the canonical format
+fmt:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    mapfile -t files < <(git ls-files '*.sh')
+    [ "${#files[@]}" -eq 0 ] && { echo "✓ fmt: nothing to format"; exit 0; }
+    shfmt -i 2 -ci -w "${files[@]}"
+    echo "✓ fmt: formatted ${#files[@]} script(s)"
+
+# Fail if any shell script deviates from the canonical format
+fmt-check:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if ! command -v shfmt > /dev/null 2>&1; then
+      echo "✗ fmt-check: shfmt not installed (brew install shfmt)" >&2
+      exit 1
+    fi
+    mapfile -t files < <(git ls-files '*.sh')
+    if [ "${#files[@]}" -eq 0 ]; then
+      echo "✓ fmt-check: no shell scripts to check"
+      exit 0
+    fi
+    if ! diff=$(shfmt -i 2 -ci -d "${files[@]}") || [ -n "$diff" ]; then
+      printf '%s\n' "$diff"
+      echo "✗ fmt-check: run \`just fmt\` to fix the above" >&2
+      exit 1
+    fi
+    echo "✓ fmt-check: ${#files[@]} script(s) correctly formatted"
 
 # Fail if personal paths or credential-shaped strings would be committed
 leaks:
@@ -13,7 +61,12 @@ leaks:
     # file does not match its own pattern -- a character class cannot match the
     # literal '[' that starts it.
     pattern='/Volumes/[A-Za-z0-9_-]+/|/Users/[a-z]|/home/[a-z]|ghp_[A-Za-z0-9]{20}|gho_[A-Za-z0-9]{20}|github[_]pat[_]|sk[-]ant[-]|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
-    if grep -rInE "$pattern" --include='*.md' --include='*.json' --include='*.sh' . ; then
+    # Include set covers every text file class in the repo. The extensionless
+    # `justfile` and the YAML configs were previously outside the gate, which is
+    # exactly where the first real leak was found.
+    if grep -rInE "$pattern" \
+      --include='*.md' --include='*.json' --include='*.sh' \
+      --include='*.yaml' --include='*.yml' --include='justfile' . ; then
       echo "✗ leaks: personal path or credential-shaped string found above" >&2
       exit 1
     fi
