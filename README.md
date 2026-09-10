@@ -39,6 +39,17 @@ Volatility increases downward; blast radius decreases. **The cheapest place for 
 bottom, the most expensive is the top.** Both vendors reorganised their request architecture around
 that single fact — which is why this is a caching teardown rather than a feature comparison.
 
+And here is what that costs you, turn by turn:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/turn-cost-anatomy-dark.svg">
+  <img alt="Four agent turns as horizontal bars. Turn 1 is a cold start billed as a cache write. Turns 2 and 3 grow by appending, with the unchanged prefix served from cache at roughly a tenth of the input rate. On turn 4 the model is switched, so the entire conversation is reprocessed as uncached input at full price." src="assets/turn-cost-anatomy.svg" width="760">
+</picture>
+
+The turn that triggers a miss is not the expensive one. **Every turn after it pays to rebuild the
+prefix**, and that cost scales with how long the session already is — which is why a model switch feels
+free and then quietly is not.
+
 ## Start here
 
 | If you want… | Go to |

@@ -1,8 +1,16 @@
 default: check
 
 # Run every repository check
-check: leaks links refs sources verify-measurements lint fmt-check
+check: leaks links refs sources verify-measurements svg-check lint fmt-check
     @echo "✓ all checks passed"
+
+# Re-render every dark-theme diagram from its light-theme source
+svg:
+    @./tools/svg-dark.sh
+
+# Fail if any dark-theme diagram is missing or stale
+svg-check:
+    @./tools/svg-dark.sh --check
 
 # Fail if a reference-style link is used but never defined, or defined but unused
 refs:
