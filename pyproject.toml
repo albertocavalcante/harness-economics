@@ -1,0 +1,35 @@
+[project]
+name = "harness-economics"
+version = "0"
+description = "Measurement harness for the harness-economics cost teardown."
+requires-python = ">=3.12"
+dependencies = ["jsonschema>=4.23,<5"]
+
+[dependency-groups]
+dev = ["pytest>=8.3,<9", "ruff>=0.9"]
+
+# Pinned to the installed uv (0.12.3), NOT the >=0.12.13 bound current docs
+# generate. uv only uses its bundled uv_build when the bound is satisfiable by
+# it; a newer floor silently forces an isolated build env and a PyPI download of
+# uv_build on every sync.
+[build-system]
+requires = ["uv_build>=0.12.3,<0.13"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "measure"
+module-root = ""
+wheel-exclude = ["**/*.sh", "**/*.md", "**/*.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+# Explicit, though .venv is in ruff's defaults: `ruff format` must never be able
+# to rewrite vendored third-party sources.
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]

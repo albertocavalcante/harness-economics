@@ -4,3 +4,10 @@ lefthook-local.yml
 .scratch/
 measurements/raw/
 *.local.json
+
+# Python — uv manages .venv on demand; uv.lock IS committed
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/

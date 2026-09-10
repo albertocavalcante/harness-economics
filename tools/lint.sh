@@ -18,3 +18,18 @@ if ! shellcheck -S warning "${files[@]}"; then
   exit 1
 fi
 echo "✓ lint: ${#files[@]} script(s) clean"
+
+# Python arm. ruff comes from the dev dependency group, so `uv run` supplies it
+# with no separate install step.
+mapfile -t py_files < <(py_files)
+if [ "${#py_files[@]}" -gt 0 ]; then
+  if ! command -v uv >/dev/null 2>&1; then
+    echo "✗ lint: uv not installed (brew install uv) but Python sources exist" >&2
+    exit 1
+  fi
+  if ! uv run --locked ruff check .; then
+    echo "✗ lint: ruff reported issues above" >&2
+    exit 1
+  fi
+  echo "✓ lint: ${#py_files[@]} Python file(s) clean"
+fi

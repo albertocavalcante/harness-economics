@@ -1,8 +1,12 @@
 default: check
 
 # Run every repository check
-check: leaks links refs sources verify-measurements svg-check lint fmt-check
+check: leaks links refs sources verify-measurements svg-check lint fmt-check test
     @echo "✓ all checks passed"
+
+# Run the Python test suite (pytest comes from the dev dependency group)
+test *args:
+    @uv run --locked pytest {{ args }}
 
 # Re-render every dark-theme diagram from its light-theme source
 svg:

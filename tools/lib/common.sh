@@ -58,3 +58,8 @@ md_files() {
 sh_files() {
   git ls-files --cached --others --exclude-standard '*.sh'
 }
+
+# py_files — every Python source the repo will ship, one per line.
+py_files() {
+  git ls-files --cached --others --exclude-standard '*.py'
+}

@@ -22,6 +22,15 @@ if [ "${1:-}" = "--check" ]; then
     exit 1
   fi
   echo "✓ fmt-check: ${#files[@]} script(s) correctly formatted"
+
+  mapfile -t py_check < <(py_files)
+  if [ "${#py_check[@]}" -gt 0 ]; then
+    if ! uv run --locked ruff format --check .; then
+      echo "✗ fmt-check: run \`just fmt\` to fix the above" >&2
+      exit 1
+    fi
+    echo "✓ fmt-check: ${#py_check[@]} Python file(s) correctly formatted"
+  fi
   exit 0
 fi
 
@@ -32,3 +41,9 @@ if [ "${#files[@]}" -eq 0 ]; then
 fi
 shfmt -i 2 -ci -w "${files[@]}"
 echo "✓ fmt: formatted ${#files[@]} script(s)"
+
+mapfile -t py_fmt < <(py_files)
+if [ "${#py_fmt[@]}" -gt 0 ]; then
+  uv run --locked ruff format .
+  echo "✓ fmt: formatted ${#py_fmt[@]} Python file(s)"
+fi
