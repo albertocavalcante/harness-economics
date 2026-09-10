@@ -62,13 +62,13 @@ that single fact — which is why this is a caching teardown rather than a featu
 
 The full set of ten is in [`SYNTHESIS.md` §1](SYNTHESIS.md).
 
-| Finding | Why it matters |
-|---|---|
-| **Cache hit rate is the only cost lever that matters at scale** | At ten turns over one prefix, a cached session costs **~21%** of an uncached one. Model and effort choice are rounding errors next to it |
-| **Both vendors price caching almost identically** | Reads ~10% of input, writes at a premium, on both. They differ in **control and visibility**, not price |
-| **"Copilot has no telemetry" is false** | Both ship OpenTelemetry. Copilot's *tracing* is arguably better designed — GenAI semconv, clean spans, subagent propagation |
-| **Only Claude Code tells you *why* the cache missed** | `likely cause: tool definitions changed`. The difference between a number and an action |
-| **Claude Code's cache is per-machine *and per-directory*** | Two worktrees of the same repo never share one. Most users do not know this |
+| Finding | Why it matters | Source |
+|---|---|---|
+| **Cache hit rate is the only cost lever that matters at scale** | At ten turns over one prefix, a cached session costs **~21%** of an uncached one | [arithmetic][t06] over [Anthropic pricing][api-cache] |
+| **Both vendors price caching almost identically** | Reads ~10% of input, writes at a premium, on both. They differ in **control and visibility**, not price | [Anthropic][api-cache] · [GitHub][gh-pricing] |
+| **"Copilot has no telemetry" is false** | Both ship OpenTelemetry. Copilot's *tracing* is arguably the better design — GenAI semconv, clean spans, subagent propagation | [VS Code 1.119][vsc-1119] · [Claude Code][cc-monitor] |
+| **Only Claude Code tells you *why* the cache missed** | `likely cause: tool definitions changed`. The difference between a number and an action | [CHANGELOG v2.1.260][cc-260] |
+| **Claude Code's cache is per-machine *and per-directory*** | Two worktrees of the same repo never share one. Most users do not know this | [Claude Code docs][cc-cache] |
 
 ## Where they actually differ
 
@@ -79,11 +79,11 @@ different *kinds* of thing, which matters more than the tally.
 
 | Capability | Claude Code | Copilot |
 |---|---|---|
-| Tells you **why** the cache missed | ✅ | ❌ |
-| Cost metric denominated in **USD** | ✅ | ❌ credits, computed downstream |
-| Per-user **and** per-token attribution joinable | ✅ same data point | ❌ two systems, no common key |
-| OTel **GenAI semantic conventions** | ❌ bespoke namespace | ✅ |
-| Trace hierarchy + subagent propagation | ⚠️ beta | ✅ |
+| Tells you **why** the cache missed | ✅ [v2.1.260][cc-260] | ❌ no equivalent found |
+| Cost metric denominated in **USD** | ✅ `claude_code.cost.usage` [↗][cc-monitor] | ❌ credits, computed downstream [↗][gh-pricing] |
+| Per-user **and** per-token attribution joinable | ✅ same data point [↗][cc-monitor] | ❌ two systems, no common key — [metrics API][gh-metrics] vs [billing report][gh-tokens] |
+| OTel **GenAI semantic conventions** | ❌ bespoke `claude_code.*` [↗][cc-monitor] | ✅ [VS Code 1.119][vsc-1119] |
+| Trace hierarchy + subagent propagation | ⚠️ beta [↗][cc-monitor] | ✅ [VS Code 1.119][vsc-1119] |
 
 **Claude Code owns cost instrumentation; Copilot owns standards-compliant tracing.** Standardising
 dashboards across many tools? Copilot's shape fits better. Working out why a bill is high? Only Claude
@@ -93,9 +93,9 @@ Code will tell you.
 
 | Capability | Claude Code | Copilot |
 |---|---|---|
-| User-facing TTL control | ✅ per request bucket | ❌ one undocumented keep-alive setting |
-| Invalidation semantics documented | ✅ exhaustively | ❌ |
-| **Cache-aware model routing** | ❌ | ✅ |
+| User-facing TTL control | ✅ per request bucket — [`promptCacheTtl`][cc-cache], [v2.1.243][cc-243] | ❌ none; one undocumented keep-alive setting [PR #316277][vsc-keepalive] |
+| Invalidation semantics documented | ✅ exhaustive catalogue [↗][cc-cache] | ❌ nothing published |
+| **Cache-aware model routing** | ❌ warns only [↗][cc-cache] | ✅ [changelog 2026-05-20][gh-routing] |
 
 That last row is the idea in this teardown most worth copying: Copilot re-routes models **only at
 boundaries where the prefix resets anyway** — turn one, and after compaction. Claude Code merely warns
@@ -105,11 +105,12 @@ you and lets you absorb the miss.
 
 Values, not wins. Forcing these into ✅/❌ is what made the original single table unreadable.
 
-| | Claude Code | Copilot |
+| Dimension | Claude Code | Copilot |
 |---|---|---|
-| Cache read / write pricing | ~0.1× / 1.25×–2.0× | ~0.1× / +25% (free on older OpenAI models) |
-| Max cache retention | **1 hour**, documented | 5m on the Anthropic path; a 24h OpenAI claim rests on [one blog sentence](TIMELINE.md) |
-| Providers abstracted | 1 family | **6** |
+| Cache **read** price | ~0.1× input [↗][api-cache] | 10% of input [↗][gh-pricing] |
+| Cache **write** price | 1.25× at 5m TTL, 2.0× at 1h [↗][api-cache] | +25% on input; **free** on older OpenAI models [↗][gh-pricing] |
+| **Max cache retention** | **1 hour** — [API docs][api-cache], selectable via [`promptCacheTtl`][cc-cache] since [v2.1.243][cc-243] | **5 minutes** on the Anthropic path — its checkpoint type carries no lifetime field, and production data shows only the 1.25× write price, never the 2× a 1h tier would produce [↗][cli-3808]. The 24h OpenAI claim rests on [one blog sentence][vsc-blog] with no release note behind it — graded **D** in [`TIMELINE.md`](TIMELINE.md) |
+| Providers abstracted | 1 family [↗][cc-cache] | **6** — OpenAI, Anthropic, Google, Microsoft, xAI, Moonshot [↗][gh-pricing] |
 
 That last row excuses much of the rest. **Copilot solved a harder problem** — two incompatible caching
 paradigms behind one interface — and paid for it in the controls it can expose.
@@ -199,3 +200,21 @@ Local hooks via [Lefthook](https://lefthook.dev); commits follow
 
 Licensed [CC0 1.0](LICENSE) — public domain. **Corrections and reproductions are welcome**, especially
 from anyone with a Copilot seat who can convert [`GAPS.md` §3](GAPS.md) from documented to observed.
+
+<!-- Every factual cell in the tables above resolves through one of these.
+     `just refs` fails the build if a reference is used but not defined, or defined but unused. -->
+
+[api-cache]: https://platform.claude.com/docs/en/build-with-claude/prompt-caching
+[cc-cache]: https://code.claude.com/docs/en/prompt-caching
+[cc-monitor]: https://code.claude.com/docs/en/monitoring-usage
+[cc-243]: https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md?plain=1#L656
+[cc-260]: https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md?plain=1#L193
+[gh-pricing]: https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing
+[gh-metrics]: https://docs.github.com/en/copilot/reference/copilot-usage-metrics/copilot-usage-metrics
+[gh-tokens]: https://github.blog/changelog/2026-08-11-per-model-token-breakdown-in-the-usage-report/
+[gh-routing]: https://github.blog/changelog/2026-05-20-auto-model-selection-now-routes-based-on-your-task-in-vs-code/
+[vsc-1119]: https://code.visualstudio.com/updates/v1_119
+[vsc-blog]: https://code.visualstudio.com/blogs/2026/06/17/improving-token-efficiency-in-github-copilot
+[vsc-keepalive]: https://github.com/microsoft/vscode/pull/316277
+[cli-3808]: https://github.com/github/copilot-cli/issues/3808
+[t06]: docs/06-billing-cost-anatomy.md
