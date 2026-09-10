@@ -4,6 +4,47 @@ Research log. Newest first.
 
 ---
 
+## 2026-09-10 — Copilot release-note evidence, and two retractions
+
+Added [`TIMELINE.md`](TIMELINE.md): every capability anchored to a dated shipping artifact, with an
+**A–E evidence grade**. Sources: VS Code release notes read as raw markdown from `microsoft/vscode-docs`,
+the `github/copilot-cli` changelog, the GitHub Changelog, and the GitHub API for issue state.
+
+**Retracted**
+
+| Was | Now |
+|---|---|
+| Copilot's 24-hour OpenAI retention is "the single largest cache lever either product has shipped" | **Grade D — blog only.** Zero hits for `prompt_cache_retention` or `24h` across VS Code v1.107–v1.138 and the CLI changelog. The architectural asymmetry is real; the claim Copilot operationalised it is not evidenced |
+| "Copilot exposes no setting that would let a user work around mid-session expiry" | **False.** `longToolCallCachePreservation` shipped in VS Code 1.123 (PR #316277, merged 2026-05-30) — keep-alive probes every ~4 min. Experimental, default-off, **zero release-note coverage** |
+| "Copilot CLI has no prompt caching" | **False** since v1.0.78 (2026-08-03) — `cache_control` breakpoints default-on for Claude |
+| "Whether users can invoke Copilot's compaction manually is undocumented" | **False** — VS Code 1.110 documents `/compact` |
+| Copilot uses "two rolling anchors on recent messages" | That is an **opt-in setting**. The default placement is end of system prompt, end of tools, end of most recent tool turn, and conversation turn boundaries |
+
+**Newly evidenced (grade A)**
+
+- OTel in VS Code — **1.119, 2026-05-06**, with a release note naming the span hierarchy *and* stating
+  spans carry cache read/creation breakdowns
+- Breakpoint placement and **">93% of each request is reused from cache"** — **1.118, 2026-04-29**
+- Tool search: Anthropic **1.109** (2026-02-04), OpenAI **1.118**, with ~30 core tools covering ~88% of
+  calls and "up to 20% token savings"
+- Compaction **1.110**; cache-friendly compaction reusing the main agent's cached context **1.118**
+- Cache-token OTel attributes emitted correctly from **CLI v1.0.64** (2026-06-23) — previous names were
+  non-conforming
+- Billing: announced 2026-04-27, **live 2026-06-01**
+
+**New findings**
+
+- **The TTL cliff, quantified.** Production data on `copilot-cli#3808`: 240 s → 3.5% of prefix
+  rewritten, 300 s → 32%, 330 s → 100%. The best cache-decay data either vendor has published, buried
+  in an issue comment.
+- **Copilot has never shipped a 1-hour TTL on its Anthropic path.** Its checkpoint type carries no
+  lifetime field, and production data shows only the 1.25× cache-write price, never the 2×.
+- **Copilot telemetry before ~2026-05-20 reports cache tokens unreliably**, and before v1.0.64 the OTel
+  attribute names were wrong. Historical cost analysis over that window measured a broken instrument.
+- Both harnesses independently arrived at running compaction against the parent's cached prefix.
+
+---
+
 ## 2026-09-10 — Changelog-anchored evidence pass
 
 Version-anchored claims previously rested on documentation pages asserting "requires vX". Each is now

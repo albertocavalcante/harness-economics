@@ -119,6 +119,25 @@ Copilot's tool search solves the same problem with a different architecture, per
 - On Anthropic models it started with server-side matching and **moved to client-side, embedding-guided
   search**, retaining a curated core toolset for common actions.
 
+**Shipping history**, from release notes rather than the blog:
+
+| Date | Release | Evidence |
+|---|---|---|
+| 2026-02-04 | VS Code 1.109 | Tool search enabled for Anthropic models, toggled by `github.copilot.chat.anthropic.toolSearchTool.enabled` ([notes](https://code.visualstudio.com/updates/v1_109)) |
+| 2026-04-29 | VS Code 1.118 | Extended to OpenAI, and the core-set sizing published ([notes](https://code.visualstudio.com/updates/v1_118)) |
+
+The 1.118 note is worth quoting because it puts numbers on the design:
+
+> A compact **always-available** core of ~30 tools, which covers ~88% of tool calls, are always
+> included. The remaining tools are **deferred**: their schemas are not loaded into the model's context
+> until the model explicitly requests them… enabled by default for Anthropic models (Claude Sonnet 4.5+
+> and Opus 4.5+), where we observed up to **20% in token savings**.
+
+Two things to note. **~30 tools covering ~88% of calls** is the empirical justification for a curated
+core — deferral only pays if the common path rarely needs a deferred schema. And the release note says
+**up to 20%**, where the June blog says 11–18%; the numbers are measuring different things (per-session
+vs per-turn, and different model sets), so cite whichever matches your comparison and say which.
+
 The move to client-side embedding search is the more interesting engineering choice: it trades a
 provider round trip for a local vector lookup, which removes both latency and a provider dependency
 from the hot path.

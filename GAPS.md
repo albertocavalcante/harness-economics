@@ -144,18 +144,35 @@ point-in-time observation of a moving target.
 
 ## 7. Third-party figures we did not reproduce
 
-| Claim | Source | Confidence |
+Superseded in detail by [`TIMELINE.md`](TIMELINE.md) §3, which grades every claim **A–E**. Summary:
+
+| Claim | Grade | Note |
 |---|---|---|
-| Cache expires on >5 min gaps mid-session; 3–5× on that turn, 8–15× cumulative | [microsoft/vscode#321551](https://github.com/microsoft/vscode/issues/321551) | **Low** — one user report, open issue, no vendor confirmation |
-| ~94% cache hit rate on Copilot's Anthropic path | [VS Code blog](https://code.visualstudio.com/blogs/2026/06/17/improving-token-efficiency-in-github-copilot) | Medium — vendor-reported, methodology not published |
-| +919% / +338% / +279% hit-rate gain from 24h retention | Same | Medium — vendor-reported |
-| 11–18% token reduction from tool search | Same | Medium — vendor-reported |
+| 3–5× / 8–15× cost from mid-session cache expiry | **E** | One user report on an open issue, no vendor confirmation. The *mechanism* is now independently quantified (idle-gap table, track 02 §3.3); the *magnitude* is not |
+| >93% cache reuse on Copilot's Anthropic path | **A** | VS Code 1.118 release note. Prefer it to the blog's ~94% |
+| +919% / +338% / +279% from 24h retention | **D** | Blog only — and so is the claim that Copilot sets `prompt_cache_retention` at all |
+| 11–18% (blog) vs up to 20% (release note) from tool search | A / D | Both vendor-reported; they measure different things. Cite the release note |
+| `longToolCallCachePreservation` benchmark ($29.26 vs $39.61) | **B** | Merged PR body. No release note exists for the feature at all |
+| `cache_control` default-on in Copilot CLI v1.0.78 | **C** | Maintainer comment only; zero hits in the CLI changelog |
 
-The vscode#321551 numbers are the weakest thing cited anywhere in this repo and track 02 §3.3 labels
-them as such inline. The *mechanism* is not in doubt; the magnitude is one reporter's estimate.
+Anthropic publishes **no** cache hit rate figure, stating only that it alerts on the metric — so **no
+vendor-to-vendor hit-rate comparison exists in either direction**, and any that appears elsewhere is
+comparing a Copilot number against nothing.
 
-Anthropic publishes **no** cache hit rate figure at all, stating only that it alerts on the metric. So
-there is no vendor-to-vendor comparison available on the headline number, in either direction.
+### 7b. Claims this repo retracted
+
+Recorded rather than silently edited, because a teardown that never visibly corrects itself is not
+being checked:
+
+1. **"Copilot's 24-hour retention is the single largest cache lever either product has shipped."**
+   Downgraded to grade D. No release note, PR, or changelog entry anywhere in VS Code v1.107–v1.138 or
+   the CLI changelog.
+2. **"Copilot exposes no setting that would let a user work around mid-session expiry."** False.
+   `longToolCallCachePreservation` shipped in VS Code 1.123 — undocumented and default-off, but real.
+3. **"Copilot CLI has no prompt caching."** False since v1.0.78 (2026-08-03).
+4. **"Whether users can invoke Copilot's compaction manually is undocumented."** False — VS Code 1.110
+   documents `/compact`.
+5. **Four Claude Code metrics described as "verified present."** Downgraded to unconfirmed (§1).
 
 ## 8. Our own measurement limits
 

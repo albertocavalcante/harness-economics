@@ -32,13 +32,19 @@ capture, and miss-cause attribution that nothing else offers.
 is the difference between observing a number and being able to act on it, and it is the single most
 useful cache feature in either product.
 
-**6. Only one product gives you any control.** TTL selection per request bucket, per-model disable, a
-force-5-minute debugging override. Copilot exposes no cache configuration at all — which is defensible
-given it must abstract six providers, but leaves its users with no remedy when the cache behaves badly.
+**6. Only one product gives you control you can find.** Claude Code: TTL per request bucket, per-model
+disable, a force-5-minute debugging override — all documented. Copilot ships exactly one cache control,
+`longToolCallCachePreservation`, and it is **experimental, default-off, and absent from every release
+note**; the user who most needed it found it by accident two months after it shipped. The difference is
+less "control vs no control" than **documented vs discoverable-by-luck**.
 
-**7. Copilot has one lever Claude Code structurally cannot match.** OpenAI's 24-hour cache retention,
-against Anthropic's one-hour maximum. For work with long idle gaps this is a real and unbridgeable
-advantage — and it is available only on Copilot's OpenAI path, not its Anthropic one.
+**7. Copilot's 24-hour retention is the claim we had to retract.** An earlier edition called it the
+largest cache lever either product had shipped. It rests on **one sentence in one blog post** — no
+release note, no PR, no changelog entry anywhere in VS Code v1.107–v1.138 or the CLI changelog. The
+architectural asymmetry is real (Anthropic caps at 1h; OpenAI's parameter allows 24h). The claim that
+Copilot operationalised it is not evidenced. Meanwhile Copilot's **Anthropic** path has never shipped
+even a 1-hour TTL: its checkpoint type carries no lifetime field, and production data shows only the
+1.25× cache-write price, never the 2× that a 1-hour tier would produce.
 
 **8. Copilot has one architectural idea Claude Code lacks entirely: cache-aware model routing.**
 Treating "which model" as a scheduling decision constrained to cache boundaries — turn one, and after

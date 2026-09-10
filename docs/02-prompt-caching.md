@@ -73,9 +73,22 @@ every turn without any signal that it is happening.
 ## 2. Breakpoints
 
 **Anthropic — explicit, budget of 4.** The caller places `cache_control` markers. Claude Code places
-them for you; Copilot places them on its Anthropic path at end-of-tools, end-of-system, and two rolling
-anchors on recent messages
-([VS Code, fetched 2026-09-10](https://code.visualstudio.com/blogs/2026/06/17/improving-token-efficiency-in-github-copilot)).
+them for you. Copilot's placement is documented in a release note, verbatim
+([VS Code 1.118, 2026-04-29](https://code.visualstudio.com/updates/v1_118)):
+
+> **Strategic cache breakpoint placement.** We audited where cache breakpoints are set so they are used
+> efficiently and placed at stable boundaries: **end of system prompt, end of tools, end of the most
+> recent tool turn, and conversation turn boundaries.** As a result, once an agent session is underway,
+> more than 93% of each request is reused from cache instead of being charged as new input.
+
+An earlier edition of this document described Copilot's placement as "two rolling anchors on recent
+messages." That is a real strategy but it is **an opt-in setting**, not the default:
+`github.copilot.chat.anthropic.cacheBreakpoints.lastTwoMessages`. Corrected here.
+
+The same release note describes a complementary trick worth stealing — deliberately making the tools
+array byte-stable: `chat.experimental.symbolTools.cacheStable` gives two tools static descriptions, and
+"we also re-ordered the tools list so deferred and non-deferred tools are grouped predictably, keeping
+the tools-array bytes identical across turns."
 
 **OpenAI — automatic.** No breakpoints; the provider infers the reusable prefix. The caller controls
 only prefix stability.
@@ -93,9 +106,9 @@ session stays warm indefinitely. The cost lands on the first turn back after a b
 
 | | Claude Code | Copilot |
 |---|---|---|
-| Default TTL | 1h on a Claude subscription within plan usage; **5m** on API key, cloud provider, or once on usage credits | Provider default (OpenAI 5–10 min) |
-| User control | `promptCacheTtl` / `subagentPromptCacheTtl` (`5m` or `1h`), env vars, `FORCE_PROMPT_CACHING_5M` | **None** |
-| Longest available | 1 hour | **24 hours** on OpenAI models |
+| Default TTL | 1h on a Claude subscription within plan usage; **5m** on API key, cloud provider, or once on usage credits | Provider default (OpenAI 5–10 min); **5m on the Anthropic path, never configurable** |
+| User control | `promptCacheTtl` / `subagentPromptCacheTtl` (`5m` or `1h`), env vars, `FORCE_PROMPT_CACHING_5M` | **No TTL setting.** One undocumented keep-alive workaround — §3.3 |
+| Longest available | 1 hour | 1h on OpenAI in principle; 24h claimed in a blog post but **unevidenced** — §3.2 |
 
 ### 3.1 Claude Code's two buckets
 
@@ -146,36 +159,68 @@ The older global flags have clean evidence — both landed together in **v2.1.10
 The per-agent override in the precedence table shipped in **v2.1.248**
 ([changelog](https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md?plain=1#L499)).
 
-### 3.2 Copilot's 24-hour retention
+### 3.2 Copilot's 24-hour retention — a claim we had to downgrade
 
-Copilot enables `prompt_cache_retention: "24h"` on OpenAI models, which moves cache state from GPU
-memory to GPU-local storage. Measured cache-hit-rate improvement after 40–60 minutes of inactivity, per
-[VS Code, fetched 2026-09-10](https://code.visualstudio.com/blogs/2026/06/17/improving-token-efficiency-in-github-copilot):
+An earlier edition of this document called `prompt_cache_retention: "24h"` "the single largest cache
+lever either product has shipped." **That was overstated and is corrected here.**
 
-| Model | Hit-rate improvement |
+The OpenAI *parameter* is real and documented by OpenAI. The claim that **Copilot sets it** rests on a
+single sentence in one vendor blog post
+([VS Code, 2026-06-17](https://code.visualstudio.com/blogs/2026/06/17/improving-token-efficiency-in-github-copilot)),
+with **no corresponding release note, PR, or changelog entry**. A grep across VS Code release notes
+v1.107–v1.138 for `prompt_cache_retention` or `24h` returns zero hits; the `copilot-cli` changelog has
+none either. The accompanying hit-rate figures — +919% on GPT-5.4, +338% on GPT-5.2, +279% on
+GPT-5.3-Codex after 40–60 minutes idle — come from that same post and have never been reproduced.
+
+Graded **D — vendor blog only** in [`../TIMELINE.md`](../TIMELINE.md) §3. It may well be shipped and
+simply unannounced; we cannot show that it is. Treat any comparison that leans on it as resting on one
+sentence.
+
+What survives the downgrade: Anthropic's ceiling **is** one hour, and OpenAI's parameter **does** allow
+24. So the *architectural* asymmetry is real. The claim that Copilot has operationalised it is not
+evidenced.
+
+### 3.3 The 5-minute cliff, and the fix almost nobody knows about
+
+[microsoft/vscode#321551](https://github.com/microsoft/vscode/issues/321551) — filed 2026-06-16, **still
+open** as of 2026-09-10, milestone `Backlog Candidates`, no assignee, no linked PR — reports the cache
+silently expiring mid-session when consecutive model calls are more than ~5 minutes apart: a long
+terminal command, a large file read, or waiting on the user.
+
+The reporter's cost figures (3–5× on the affected turn, 8–15× cumulative) are **one user's estimate**,
+unreproduced, graded E. But the *mechanism* is now independently quantified. On
+[copilot-cli#3808](https://github.com/github/copilot-cli/issues/3808), 2026-08-10, production session
+data binned by idle gap:
+
+| Idle gap | Prefix rewritten |
 |---|---|
-| GPT-5.4 | +919% |
-| GPT-5.2 | +338% |
-| GPT-5.3-Codex | +279% |
+| 240 s | 3.5% |
+| 270 s | 11.6% |
+| **300 s** | **32.0%** |
+| **330 s** | **100%** |
 
-This is the single largest cache lever either product has shipped, and it is **structurally
-unavailable** to Claude Code — Anthropic's maximum TTL is one hour. For a workflow with long idle gaps
-(overnight runs, a session resumed after lunch), Copilot on an OpenAI model has an advantage Claude
-Code cannot configure its way to.
+**That is the TTL cliff with numbers on it.** Nothing much happens before four minutes; a third of the
+prefix is gone at five; it is total by five and a half. This is the best-quantified cache-decay data
+either vendor has published, and it is buried in an issue comment.
 
-### 3.3 Copilot's open 5-minute problem
+**We were also wrong that Copilot offers no workaround.** It does — it is just undocumented and off by
+default. [PR #316277](https://github.com/microsoft/vscode/pull/316277), merged 2026-05-30 and shipped
+in **VS Code 1.123**, adds `github.copilot.chat.agent.longToolCallCachePreservation`: keep-alive probes
+sent every ~4 minutes during long tool calls to hold the server-side cache warm. From the PR body:
 
-[microsoft/vscode#321551, fetched 2026-09-10](https://github.com/microsoft/vscode/issues/321551) —
-reported 2026-06-16, **open**, in the "Backlog Candidates" milestone — reports that the cache silently
-expires during active agent sessions when consecutive model calls are more than ~5 minutes apart:
-waiting on a long terminal command, a large file read, or on the user. The reporter measures **3–5× on
-the affected turn and 8–15× cumulative** on long sessions, and estimates a 30–60% per-session saving if
-fixed with a keepalive ping.
+> "my PR resulted in more requests and more cached input tokens, but lower costs overall thanks to far
+> fewer uncached tokens" — benchmark **$29.26 with the fix vs $39.61 without**
 
-Treat those figures as a **user report, not a vendor measurement** — they are one reporter's estimate
-and we have not reproduced them. What is not in question is the mechanism, or that Copilot exposes no
-setting that would let a user work around it. Claude Code's answer to precisely this scenario is the
-1-hour TTL.
+It shipped **experimental, default-off, and with no release-note coverage at all** (grepped
+v1.107–v1.138 for `preservation|keepalive|longToolCall`: no hits). The reporter of #321551 discovered it
+by accident two months later. Graded **B — code evidence, no release note**.
+
+The honest comparison, then: Claude Code answers this with a documented 1-hour TTL; Copilot answers it
+with an undocumented default-off probe loop. Both are answers. Only one is findable.
+
+**And Copilot has never shipped a 1-hour TTL on its Anthropic path.** From the same #3808 comment:
+`CacheControlCheckpoint = { type: "ephemeral" }` carries **no lifetime field**, and production data
+shows "exactly one cache-write price, always 1.25× base, and the 2× rate never appears."
 
 ## 4. What invalidates the cache
 
@@ -230,9 +275,11 @@ Copilot's equivalents, from the VS Code post: tool search with client-side embed
 over a curated core toolset (**11–18% fewer prompt and total tokens per session** on Anthropic models,
 8.6–9.8% on OpenAI), and compaction as a deliberate re-routing boundary.
 
-Reported cache hit rate on Copilot's Anthropic path for dense agentic turn sequences: **~94%**. There is
-no published Claude Code equivalent to compare against — Anthropic states it alerts on the metric but
-does not publish the number.
+Reported cache hit rate on Copilot's Anthropic path: **">93% of each request is reused from cache"**
+([VS Code 1.118 release note](https://code.visualstudio.com/updates/v1_118)). The June blog rounds this
+to ~94%; prefer the release note, which is the primary artifact. There is no published Claude Code
+equivalent — Anthropic states it alerts on the metric but does not publish the number, so **no
+vendor-to-vendor hit-rate comparison is available in either direction.**
 
 ### 5.1 The changelog is the best evidence that this is hard
 

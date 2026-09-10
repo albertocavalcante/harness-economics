@@ -114,7 +114,24 @@ fleet scale where session-id cardinality is what makes a metrics bill explode.
 
 ### 2.1 VS Code
 
-Per [Monitor agent usage with OpenTelemetry, fetched 2026-09-10](https://code.visualstudio.com/docs/agents/guides/monitoring-agents):
+**Shipped in VS Code 1.119, 2026-05-06** — and the release note is unusually specific, which makes this
+one of the best-evidenced claims in the repo
+([notes](https://code.visualstudio.com/updates/v1_119)):
+
+> Copilot Chat agent sessions, including the local agent, the Copilot CLI background agent, and the
+> Claude agent, now emit OpenTelemetry traces, metrics, and events that follow the GenAI semantic
+> conventions… Each user request produces an `invoke_agent` root span (for example, `invoke_agent
+> claude`) with nested `chat`, `execute_tool`, and `execute_hook` child spans. Subagent invocations are
+> automatically parented to the calling agent's `execute_tool` span… **Spans report model and token
+> usage, including cache read and cache creation breakdowns.**
+
+Hardened across three subsequent releases: **1.121** (2026-05-20) added a Grafana dashboard, **1.122**
+(2026-05-28) a canonical `github.copilot.*` attribute namespace, **1.128** (2026-07-08) enterprise-managed
+export. The correctly-named cache attributes reached the CLI in **v1.0.64** (2026-06-23) — that entry
+notes the previous names were wrong, so telemetry captured before that date used non-conforming keys.
+
+Field-level detail below is from
+[Monitor agent usage with OpenTelemetry, fetched 2026-09-10](https://code.visualstudio.com/docs/agents/guides/monitoring-agents):
 
 **Spans** — `invoke_agent` (wraps the whole orchestration) → `chat` (one per model call),
 `execute_tool` (one per invocation), `execute_hook` (one per hook). Trace context propagates into
@@ -150,11 +167,23 @@ Code documentation above is the authoritative source for field names.
 
 ### 2.3 The gap that was there
 
-[github/copilot-sdk#1073, fetched 2026-09-10](https://github.com/github/copilot-sdk/issues/1073),
-reported 2026-04-14 against SDK v0.2.2, **now closed**: `assistant.usage.cacheReadTokens` and
-`cacheWriteTokens` were defined and documented, but always `0.0` — the CLI never extracted
-`cache_read_input_tokens` / `cache_creation_input_tokens` from Anthropic responses or
-`prompt_tokens_details.cached_tokens` from OpenAI's.
+[github/copilot-sdk#1073](https://github.com/github/copilot-sdk/issues/1073), filed 2026-04-14 against
+SDK v0.2.2: `assistant.usage.cacheReadTokens` and `cacheWriteTokens` were defined and documented, but
+always `0.0` — the CLI never extracted `cache_read_input_tokens` / `cache_creation_input_tokens` from
+Anthropic responses or `prompt_tokens_details.cached_tokens` from OpenAI's.
+
+**It was closed the same day it was filed — by assertion, not by a fix you can inspect.** The closing
+artifact is a maintainer comment: *"This has been fixed and will be available in the next release."*
+There is **no linked PR, no commit, and no named version**, because the root cause was in the
+closed-source Copilot CLI server rather than the SDK. Graded **C** in [`../TIMELINE.md`](../TIMELINE.md).
+
+The nearest dated public confirmation that cache tokens actually flow is the CLI changelog: **v1.0.51**
+(2026-05-20) `Ensure input token usage includes cached`, then **v1.0.60** (2026-06-05) `Show cache write
+tokens alongside cache read tokens in /usage`.
+
+Practical consequence: **Copilot telemetry captured before roughly 2026-05-20 reports cache tokens
+unreliably**, and before v1.0.64 (2026-06-23) the OTel attribute names themselves were non-conforming.
+Any historical cost analysis over that window is measuring an instrument that was broken.
 
 Worth citing not as a live defect but as evidence of maturity ordering: Copilot's cache telemetry was
 specified before it was implemented, and for a period the fields returned confident zeros. Anyone with
@@ -162,10 +191,24 @@ historical Copilot telemetry from that window should treat cache figures in it a
 
 ### 2.4 Copilot CLI
 
-[github/copilot-cli#3808, fetched 2026-09-10](https://github.com/github/copilot-cli/issues/3808) —
-opened 2026-06-15, **open**, no maintainer response — requests prompt caching in the CLI at all,
-noting there is "no visible optimization" for static prompt content. The CLI is a separate
-implementation from the VS Code extension; conclusions about one do not transfer.
+**Correcting an earlier claim.** This document previously stated that Copilot CLI had no prompt caching
+and that [#3808](https://github.com/github/copilot-cli/issues/3808) sat unanswered. Both were wrong.
+
+The issue was **split**. Its `cache_control` half became
+[#4256](https://github.com/github/copilot-cli/issues/4256), **closed completed 2026-08-09** — Claude
+requests now mark the static prefix (system prompt and tool definitions) with ephemeral `cache_control`
+breakpoints by default, observable in the `Tokens` line of the session summary from **v1.0.78**
+(2026-08-03). Note the evidence grade: that fact exists **only in the closing comment**; a grep of the
+entire 3,083-line CLI changelog for `cache_control|breakpoint|ttl` returns zero hits.
+
+The **1-hour TTL half remains open**, with substantial production data attached — see
+[track 02 §3.3](02-prompt-caching.md) for the idle-gap decay table that came out of it.
+
+The CLI also runs ahead of the VS Code extension on some telemetry: per-model token totals in `/usage`
+(v1.0.64, 2026-06-23) predate the equivalent VS Code footer breakdown (1.135, 2026-08-26) by two
+months, and cache-write display (v1.0.60) predates the usage report's by over two. **The CLI and the
+extension are separate implementations and conclusions about one do not transfer** — in either
+direction.
 
 ## 3. Head to head
 

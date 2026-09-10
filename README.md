@@ -8,8 +8,8 @@ This is not a feature comparison. It follows a single question down through six 
 products: when you send one message, what gets billed, and why? The answer turns out to be mostly about
 prompt caching — which is why both vendors reorganised their entire request architecture around it.
 
-**Compiled:** 2026-09-10 · ~15,000 words across 6 tracks · 81 inline citations · measurement harness
-included
+**Compiled:** 2026-09-10 · ~20,600 words across 6 tracks · 137 inline citations · every claim
+evidence-graded A–E · measurement harness included
 
 ---
 
@@ -18,6 +18,7 @@ included
 - [Scope](#scope)
 - [At a glance](#at-a-glance)
 - [The tracks](#the-tracks)
+- [Evidence and timeline](TIMELINE.md)
 - [Where they actually differ](#where-they-actually-differ)
 - [Measure it yourself](#measure-it-yourself)
 - [Conventions](#conventions)
@@ -56,8 +57,11 @@ direct verification against a local binary. See [`GAPS.md`](GAPS.md) §3.
   no equivalent anywhere in Copilot, and it is the difference between a number and an action.
 - **Only Claude Code gives you cache controls.** TTL per request bucket, per-model disable, a debugging
   override. Copilot exposes none.
-- **Copilot has one lever Claude Code cannot match:** OpenAI's 24-hour cache retention, against
-  Anthropic's one-hour maximum.
+- **The claim we retracted:** we initially called Copilot's 24-hour OpenAI cache retention the biggest
+  lever either product ships. It rests on **one blog sentence with no release note behind it**. See
+  [`TIMELINE.md`](TIMELINE.md) §3 for how every claim here is evidence-graded.
+- **Copilot's answer to mid-session cache expiry exists but is invisible** — an experimental,
+  default-off keep-alive setting that shipped with no release-note coverage at all.
 - **Copilot has one idea worth stealing:** cache-aware model routing — switching models only at
   boundaries where the prefix resets anyway.
 - **Claude Code's cache is per-machine and per-directory.** Two worktrees of the same repo never share
@@ -79,6 +83,13 @@ direct verification against a local binary. See [`GAPS.md`](GAPS.md) §3.
 Cross-cutting conclusions are in [`SYNTHESIS.md`](SYNTHESIS.md). Method and its limits are in
 [`METHODOLOGY.md`](METHODOLOGY.md). What could not be determined is in [`GAPS.md`](GAPS.md).
 
+**[`TIMELINE.md`](TIMELINE.md) is where the evidence lives.** Every capability is anchored to the
+changelog entry or release note that shipped it, with an explicit **A–E grade** separating a versioned
+vendor changelog entry (A) from a merged PR that never got a release note (B), a maintainer's comment
+with no linked commit (C), a blog sentence with no shipping artifact (D), and an unreproduced user
+report (E). Two of this repo's own earlier claims were downgraded by that exercise, including one
+headline finding — the retraction is documented rather than quietly edited out.
+
 ## Where they actually differ
 
 Neither product wins outright.
@@ -86,8 +97,8 @@ Neither product wins outright.
 | | Claude Code | Copilot |
 |---|---|---|
 | Cache read / write pricing | ~0.1× / 1.25×–2.0× | ~0.1× / +25% (free on older OpenAI models) |
-| Max cache retention | 1 hour | **24 hours** (OpenAI path) |
-| User-facing TTL control | ✅ per request bucket | ❌ none |
+| Max cache retention | 1 hour, documented | 5m on the Anthropic path; a 24h OpenAI claim rests on [one blog sentence](TIMELINE.md) |
+| User-facing TTL control | ✅ per request bucket | ❌ none — one undocumented keep-alive setting |
 | Miss-cause attribution | ✅ | ❌ |
 | Cost metric in USD | ✅ | ❌ credits, computed downstream |
 | OTel GenAI semconv | ❌ bespoke namespace | ✅ |

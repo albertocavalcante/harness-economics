@@ -122,9 +122,21 @@ Re-routing costs nothing at a boundary where the cache is already being discarde
 That is a genuinely better use of the event than Claude Code makes of it. Claude Code rebuilds the same
 prefix with the same model and does not treat compaction as a decision point.
 
-**Not documented:** Copilot's compaction trigger threshold, what survives summarisation, whether users
-can invoke it manually, and whether it emits any telemetry of its own. Its OTel surface (track 05) does
-not include a compaction-specific span or metric that we could identify.
+**Correcting an earlier claim.** This document previously listed "whether users can invoke it manually"
+and "whether it emits telemetry" as undocumented. Both are documented; we had not looked at the release
+notes:
+
+| Date | Release | Evidence |
+|---|---|---|
+| 2026-03-04 | VS Code 1.110 | `Context compaction summarizes the conversation history to free up space… VS Code automatically compacts the conversation when the context window reaches its limit, but you can also trigger compaction manually.` Manual trigger is `/compact` ([notes](https://code.visualstudio.com/updates/v1_110)) |
+| 2026-04-29 | VS Code 1.118 | `Cache-friendly background compaction… These background summaries now reuse the same cached context as the main agent` ([notes](https://code.visualstudio.com/updates/v1_118)) |
+| 2026-06-23 | CLI v1.0.64 | Emits a `gen_ai.conversation.compacted` OTel signal ([CLI changelog](https://github.com/github/copilot-cli/blob/main/changelog.md)) |
+
+The 1.118 entry is the more interesting one: **Copilot independently arrived at the same prefix-reuse
+trick as Claude Code** — running the summarisation call against the main agent's cached context rather
+than as a fresh request. Two harnesses, different providers, same optimisation.
+
+**Genuinely still undocumented:** the compaction trigger threshold, and what survives summarisation.
 
 ## 4. Cost consequences
 
