@@ -85,11 +85,26 @@ it in is how a harness produces confident numbers that mean nothing.
 ### 4. Parse
 
 ```sh
-./parse-spans.sh /private/tmp/harness-econ/collector/spans.jsonl
+uv run --locked python -m measure.copilot.parse_spans \
+  /private/tmp/harness-econ/collector/spans.jsonl \
+  --surface copilot-vscode
 ```
 
-Prints per-span token attributes and an aggregate cache-read ratio, and writes a measurement JSON to
-`/private/tmp/harness-econ/runs/`. Promote it with `just record <file>` after reviewing it.
+`--surface` is mandatory and is not guessable from the spans. The VS Code extension, the CLI and the
+SDK have reported different numbers for the same spend, so a record that does not name one is not
+comparable to anything. Valid values: `copilot-vscode`, `copilot-cli`, `copilot-sdk`.
+
+Prints per-span token totals and an aggregate cache-read share, then writes a schema-validated
+measurement JSON to `/private/tmp/harness-econ/runs/`. Promote it with `just record <file>` after
+reviewing it.
+
+Two outputs deserve attention before you trust the run:
+
+- **`parent spans (excl.)`** — `invoke_agent` rollups already contain their children, so they are
+  counted and never summed. Adding both double-counts every nested call.
+- **`cache read share: n/a`** — the meter was silent on at least one span, so no share is reported at
+  all. That is not a cache miss and must not be read as a cheap run; several Copilot paths never
+  populate these attributes ([known issues](../../reference/KNOWN-ISSUES.md)).
 
 ### 5. Stop
 
