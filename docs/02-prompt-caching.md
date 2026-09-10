@@ -90,8 +90,34 @@ array byte-stable: `chat.experimental.symbolTools.cacheStable` gives two tools s
 "we also re-ordered the tools list so deferred and non-deferred tools are grouped predictably, keeping
 the tools-array bytes identical across turns."
 
-**OpenAI — automatic.** No breakpoints; the provider infers the reusable prefix. The caller controls
-only prefix stability.
+**OpenAI — automatic, and since GPT-5.6, also explicit.**
+
+> [!IMPORTANT]
+> **Correction.** Earlier editions of this document described OpenAI's caching as automatic-only and
+> built the Copilot analysis on "two incompatible paradigms." That was true through GPT-5.5 and is
+> **no longer true.** As of **2026-07-09**, GPT-5.6 supports explicit caching:
+> `prompt_cache_options: {mode: "explicit"}` with `prompt_cache_breakpoint` markers, **max 4 cache
+> writes per request, writes billed at 1.25× input and reads at 0.1×**
+> ([OpenAI prompt caching guide, fetched 2026-09-10](https://developers.openai.com/api/docs/guides/prompt-caching)).
+>
+> Those are **the same numbers and the same breakpoint budget as Anthropic.** The two paradigms
+> converged rather than staying incompatible, which weakens the "Copilot solved a harder abstraction
+> problem" framing considerably — that framing was accurate for the period Copilot's architecture was
+> built in, and is now partly historical.
+
+| Mode | Availability | Breakpoints | Write | Read |
+|---|---|---|---|---|
+| Implicit | pre-5.6 and 5.6+ | inferred; rounds down to a multiple of 128 | **free** pre-5.6 | 0.1× |
+| **Explicit** | **GPT-5.6+** | caller-placed, **max 4** | **1.25×** | 0.1× |
+
+Minimum cacheable prefix is 1,024 tokens on both modes. TTL on 5.6+ is `30m` — **the only supported
+value**, and the default. Pre-5.6 implicit caching used `prompt_cache_retention` with `in_memory`
+(5–10 min, up to 1 hour) or `24h`, which is where this repo's grade-D 24-hour claim originates.
+
+The docs also state the invalidation rule in terms this repo has been arguing independently:
+*"Summarization, compaction, or context truncation can change the prefix and reset cache reuse."*
+Their recommended mitigation is the same one Manus derived from first principles — **mask tools rather
+than removing them**, via `tool_choice: "none"` or `allowed_tools`, so the tool list stays byte-stable.
 
 **The lookback window.** Each breakpoint walks backward a bounded number of content blocks to find a
 prior entry. A turn that emits many tool-call blocks can push the previous entry outside that window,

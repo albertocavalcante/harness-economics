@@ -148,8 +148,14 @@ Claude Code targets one provider family and can therefore design *for* the cache
 a tool rather than a tool-set swap, deferred loading that preserves block ordering, compaction that
 reuses the parent prefix. Every one of those is a product decision made to protect a prefix.
 
-Copilot targets six providers across two incompatible caching paradigms — explicit breakpoints and
-automatic prefix inference. It cannot design for a contract it does not control, so it invests instead
+Copilot targets six providers which, when its architecture was built, spanned two incompatible caching
+paradigms — explicit breakpoints and automatic prefix inference. **That gap has since closed:** OpenAI
+shipped explicit caching with GPT-5.6 on 2026-07-09, with the same four-breakpoint budget and the same
+1.25× / 0.1× economics as Anthropic. The abstraction problem was real when Copilot solved it and is
+now substantially smaller — a fact that makes the design look prescient rather than over-engineered,
+but which this document overstated in earlier editions.
+
+It could not design for a contract it did not control, so it invested instead
 in things that hold regardless of provider: deferring schemas out of the prefix entirely, compacting at
 points where the prefix resets anyway, and routing only at those boundaries.
 

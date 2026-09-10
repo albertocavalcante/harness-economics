@@ -179,4 +179,4 @@ See [`../GAPS.md`](../GAPS.md).
 
 ---
 
-← [05 — Telemetry](05-telemetry.md) · [Index](../README.md) · [Synthesis](../SYNTHESIS.md) →
+← [05 — Telemetry](05-telemetry.md) · [Index](../README.md) · [07 — Research context](07-research-context.md) →

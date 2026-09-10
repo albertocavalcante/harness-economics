@@ -4,7 +4,7 @@
 subsystem-by-subsystem teardown of **Claude Code** and **GitHub Copilot**, with every claim
 evidence-graded and a measurement harness you can run yourself.
 
-**Compiled:** 2026-09-10 · ~21,400 words across 6 tracks · 137 inline citations · CC0
+**Compiled:** 2026-09-10 · ~25,300 words across 7 tracks · 193 inline citations · CC0
 
 > [!WARNING]
 > **No Copilot seat was available on the research machine, so every Copilot claim here is
@@ -58,7 +58,7 @@ free and then quietly is not.
 | To look up **a setting** | [`reference/SETTINGS.md`](reference/SETTINGS.md) |
 | To check **a known bug or its workaround** | [`reference/KNOWN-ISSUES.md`](reference/KNOWN-ISSUES.md) |
 | **When a feature shipped**, with a link | [`TIMELINE.md`](TIMELINE.md) |
-| The **full argument**, subsystem by subsystem | [the six tracks](#the-six-tracks) |
+| The **full argument**, subsystem by subsystem | [the seven tracks](#the-seven-tracks) |
 | To **run the measurements** | [Measure it yourself](#measure-it-yourself) |
 | What we **could not determine** | [`GAPS.md`](GAPS.md) |
 
@@ -123,12 +123,17 @@ Values, not wins. Forcing these into ✅/❌ is what made the original single ta
 | **Max cache retention** | **1 hour** — [API docs][api-cache], selectable via [`promptCacheTtl`][cc-cache] since [v2.1.243][cc-243] | **5 minutes** on the Anthropic path — its checkpoint type carries no lifetime field, and production data shows only the 1.25× write price, never the 2× a 1h tier would produce [↗][cli-3808]. The 24h OpenAI claim rests on [one blog sentence][vsc-blog] with no release note behind it — graded **D** in [`TIMELINE.md`](TIMELINE.md) |
 | Providers abstracted | 1 family [↗][cc-cache] | **6** — OpenAI, Anthropic, Google, Microsoft, xAI, Moonshot [↗][gh-pricing] |
 
-That last row excuses much of the rest. **Copilot solved a harder problem** — two incompatible caching
-paradigms behind one interface — and paid for it in the controls it can expose.
+That last row excuses much of the rest: **Copilot solved a harder problem** — at the time, two
+incompatible caching paradigms behind one interface — and paid for it in the controls it can expose.
 
-The full argument for every row is in [the six tracks](#the-six-tracks).
+> [!IMPORTANT]
+> That framing is now partly historical. OpenAI shipped **explicit** caching with GPT-5.6 on
+> 2026-07-09 — caller-placed breakpoints, max 4, writes 1.25×, reads 0.1× — the same shape and the same
+> numbers as Anthropic. The paradigms converged. Corrected in [track 02 §2](docs/02-prompt-caching.md).
 
-## The six tracks
+The full argument for every row is in [the seven tracks](#the-seven-tracks).
+
+## The seven tracks
 
 | # | Document | Covers |
 |---|---|---|
@@ -138,6 +143,7 @@ The full argument for every row is in [the six tracks](#the-six-tracks).
 | 04 | [Tool and MCP loading](docs/04-tool-and-mcp-loading.md) | Deferred loading, tool search, the silent MCP reconnect problem |
 | 05 | [Telemetry](docs/05-telemetry.md) | OTel on both sides, miss-cause attribution, the chargeback join problem |
 | 06 | [Billing and cost anatomy](docs/06-billing-cost-anatomy.md) | Premium requests → AI credits, break-even math, structural incomparabilities |
+| 07 | [Research context](docs/07-research-context.md) | Is exact-prefix a law? What the literature says dominates, what fights caching, what other vendors published |
 
 ## How claims are graded
 

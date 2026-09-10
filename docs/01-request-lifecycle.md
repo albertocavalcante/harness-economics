@@ -116,7 +116,14 @@ The structural difference is the **provider abstraction**. Per
 [Improving token efficiency in GitHub Copilot, fetched 2026-09-10](https://code.visualstudio.com/blogs/2026/06/17/improving-token-efficiency-in-github-copilot),
 Copilot's request layer must satisfy two incompatible caching contracts simultaneously:
 
-| | Anthropic path | OpenAI path |
+> [!IMPORTANT]
+> **This table describes the world Copilot's architecture was built for, and it has since changed.**
+> OpenAI shipped **explicit** caching with GPT-5.6 on 2026-07-09 — caller-placed breakpoints, max 4,
+> writes at 1.25× and reads at 0.1×, i.e. the same shape and the same numbers as Anthropic. The
+> paradigms converged. See [track 02 §2](02-prompt-caching.md) for the correction in full; the
+> historical contrast below still explains *why* Copilot's request layer looks the way it does.
+
+| | Anthropic path | OpenAI path (through GPT-5.5) |
 |---|---|---|
 | Cache boundary | Caller places explicit `cache_control` breakpoints, max 4 | Provider infers the reusable prefix automatically |
 | What the harness controls | Exact breakpoint placement | Only prefix stability; no placement control |
