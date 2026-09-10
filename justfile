@@ -6,270 +6,51 @@ check: leaks links refs sources verify-measurements lint fmt-check
 
 # Fail if a reference-style link is used but never defined, or defined but unused
 refs:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    # `links` only sees inline ](path) links. A reference link [text][id] whose
-    # [id]: definition is missing renders as literal text on GitHub rather than
-    # erroring, so it needs its own gate.
-    fail=0
-    for f in $(git ls-files '*.md'); do
-      used=$( { grep -oE '\]\[[A-Za-z0-9_-]+\]' "$f" || true; } | sed -E 's/^\]\[(.*)\]$/\1/' | sort -u)
-      defined=$( { grep -oE '^\[[A-Za-z0-9_-]+\]:' "$f" || true; } | sed -E 's/^\[(.*)\]:$/\1/' | sort -u)
-      for id in $used; do
-        if ! printf '%s\n' "$defined" | grep -qx "$id"; then
-          echo "✗ refs: $f uses [$id] but never defines it" >&2
-          fail=1
-        fi
-      done
-      for id in $defined; do
-        if ! printf '%s\n' "$used" | grep -qx "$id"; then
-          echo "✗ refs: $f defines [$id] but never uses it" >&2
-          fail=1
-        fi
-      done
-    done
-    [ "$fail" -eq 0 ] || exit 1
-    echo "✓ refs: every reference-style link resolves"
+    @./tools/refs.sh
 
 # Static-analyse every shell script
 lint:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if ! command -v shellcheck > /dev/null 2>&1; then
-      echo "✗ lint: shellcheck not installed (brew install shellcheck)" >&2
-      exit 1
-    fi
-    mapfile -t files < <(git ls-files '*.sh')
-    if [ "${#files[@]}" -eq 0 ]; then
-      echo "✓ lint: no shell scripts to check"
-      exit 0
-    fi
-    if ! shellcheck -S warning "${files[@]}"; then
-      echo "✗ lint: shellcheck reported issues above" >&2
-      exit 1
-    fi
-    echo "✓ lint: ${#files[@]} script(s) clean"
+    @./tools/lint.sh
 
 # Rewrite every shell script in the canonical format
 fmt:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    mapfile -t files < <(git ls-files '*.sh')
-    [ "${#files[@]}" -eq 0 ] && { echo "✓ fmt: nothing to format"; exit 0; }
-    shfmt -i 2 -ci -w "${files[@]}"
-    echo "✓ fmt: formatted ${#files[@]} script(s)"
+    @./tools/fmt.sh
 
 # Fail if any shell script deviates from the canonical format
 fmt-check:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    if ! command -v shfmt > /dev/null 2>&1; then
-      echo "✗ fmt-check: shfmt not installed (brew install shfmt)" >&2
-      exit 1
-    fi
-    mapfile -t files < <(git ls-files '*.sh')
-    if [ "${#files[@]}" -eq 0 ]; then
-      echo "✓ fmt-check: no shell scripts to check"
-      exit 0
-    fi
-    if ! diff=$(shfmt -i 2 -ci -d "${files[@]}") || [ -n "$diff" ]; then
-      printf '%s\n' "$diff"
-      echo "✗ fmt-check: run \`just fmt\` to fix the above" >&2
-      exit 1
-    fi
-    echo "✓ fmt-check: ${#files[@]} script(s) correctly formatted"
+    @./tools/fmt.sh --check
 
 # Fail if personal paths or credential-shaped strings would be committed
 leaks:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    # Volume and home patterns are deliberately generic: they must catch any
-    # contributor's machine, not one author's. They are also written so this
-    # file does not match its own pattern -- a character class cannot match the
-    # literal '[' that starts it.
-    pattern='/Volumes/[A-Za-z0-9_-]+/|/Users/[a-z]|/home/[a-z]|ghp_[A-Za-z0-9]{20}|gho_[A-Za-z0-9]{20}|github[_]pat[_]|sk[-]ant[-]|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
-    # Include set covers every text file class in the repo. The extensionless
-    # `justfile` and the YAML configs were previously outside the gate, which is
-    # exactly where the first real leak was found.
-    if grep -rInE "$pattern" \
-      --include='*.md' --include='*.json' --include='*.sh' \
-      --include='*.yaml' --include='*.yml' --include='justfile' . ; then
-      echo "✗ leaks: personal path or credential-shaped string found above" >&2
-      exit 1
-    fi
-    echo "✓ leaks: clean"
+    @./tools/leaks.sh
 
 # Fail on broken relative links between documents
 links:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    fail=0
-    while IFS= read -r line; do
-      file="${line%%:*}"
-      target="${line#*:}"
-      case "$target" in http*|\#*|mailto:*) continue ;; esac
-      target="${target%%#*}"
-      [ -z "$target" ] && continue
-      if [ ! -e "$(dirname "$file")/$target" ]; then
-        echo "✗ broken link: $file -> $target" >&2
-        fail=1
-      fi
-    done < <(grep -rIoE '\]\([^)]+\)' --include='*.md' . | sed -E 's/\]\(([^)]*)\)/\1/')
-    [ "$fail" -eq 0 ] || exit 1
-    echo "✓ links: all relative links resolve"
+    @./tools/links.sh
 
 # Enforce a minimum citation density per track document (URLs + measurement refs)
 sources min='10':
-    #!/usr/bin/env bash
-    set -euo pipefail
-    fail=0
-    for f in docs/*.md; do
-      urls=$( { grep -o 'https\?://' "$f" || true; } | wc -l | tr -d ' ')
-      meas=$( { grep -o 'measurements/' "$f" || true; } | wc -l | tr -d ' ')
-      n=$((urls + meas))
-      if [ "$n" -lt "{{ min }}" ]; then
-        echo "✗ sources: $f has $n citations, minimum is {{ min }}" >&2
-        fail=1
-      fi
-    done
-    [ "$fail" -eq 0 ] || exit 1
-    echo "✓ sources: every track document meets the citation minimum"
+    @./tools/sources.sh {{ min }}
 
 # Validate every recorded measurement file's schema, then re-run the leak scan over it
 verify-measurements:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    shopt -s nullglob
-    # measurements/schema.json is the JSON Schema records are validated
-    # against, not a measurement record — it has none of the five required
-    # keys by design and must be excluded from this loop, not checked as one.
-    files=()
-    for f in measurements/*.json; do
-      [ "$f" = "measurements/schema.json" ] || files+=("$f")
-    done
-    if [ "${#files[@]}" -eq 0 ]; then
-      echo "✓ measurements: no measurement files recorded yet"
-      exit 0
-    fi
-    for f in "${files[@]}"; do
-      if ! jq -e 'has("schema_version") and has("timestamp_utc") and has("harness") and has("workload") and has("aggregates")' "$f" > /dev/null 2>&1; then
-        echo "✗ measurements: $f failed to parse or is missing a required key (schema_version, timestamp_utc, harness, workload, aggregates)" >&2
-        exit 1
-      fi
-    done
-    # Volume and home patterns are deliberately generic: they must catch any
-    # contributor's machine, not one author's. They are also written so this
-    # file does not match its own pattern -- a character class cannot match the
-    # literal '[' that starts it.
-    pattern='/Volumes/[A-Za-z0-9_-]+/|/Users/[a-z]|/home/[a-z]|ghp_[A-Za-z0-9]{20}|gho_[A-Za-z0-9]{20}|github[_]pat[_]|sk[-]ant[-]|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
-    if grep -rInE "$pattern" "${files[@]}" ; then
-      echo "✗ measurements: personal path or credential-shaped string found above" >&2
-      exit 1
-    fi
-    echo "✓ measurements: ${#files[@]} file(s) valid"
+    @./tools/verify-measurements.sh
 
 # Preflight: confirm required and optional tooling is present
 doctor:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    hard_missing=0
-    if command -v just > /dev/null 2>&1; then
-      echo "✓ doctor: just found ($(just --version))"
-    else
-      echo "✗ doctor: just not found" >&2
-    fi
-    if command -v jq > /dev/null 2>&1; then
-      echo "✓ doctor: jq found ($(jq --version))"
-    else
-      echo "✗ doctor: jq not found — required" >&2
-      hard_missing=1
-    fi
-    if command -v claude > /dev/null 2>&1; then
-      echo "✓ doctor: claude found ($(claude --version))"
-    else
-      echo "✗ doctor: claude not found — required" >&2
-      hard_missing=1
-    fi
-    if command -v copilot > /dev/null 2>&1; then
-      echo "✓ doctor: copilot found ($(copilot --version 2>/dev/null || echo unknown))"
-    else
-      echo "✗ copilot: not installed — Copilot measurement path unavailable"
-    fi
-    if command -v podman > /dev/null 2>&1; then
-      echo "✓ doctor: podman found ($(podman --version))"
-    else
-      echo "✗ doctor: podman not installed — optional"
-    fi
-    echo "--- disk space (/private/tmp volume) ---"
-    df -h /private/tmp
-    if [ "$hard_missing" -eq 0 ]; then
-      echo "✓ doctor: environment ready"
-    else
-      echo "✗ doctor: missing hard requirement" >&2
-      exit 1
-    fi
+    @./tools/doctor.sh
 
 # Remove the local measurement staging directory
 clean:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    dir='/private/tmp/harness-econ'
-    if [ -d "$dir" ]; then
-      rm -rf "$dir"
-      echo "✓ clean: removed $dir"
-    else
-      echo "✓ clean: $dir did not exist, nothing to remove"
-    fi
+    @./tools/clean.sh
 
 # Regenerate measurements/SUMMARY.md from every recorded measurement file
 summary:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    shopt -s nullglob
-    files=()
-    for f in measurements/*.json; do
-      [ "$f" = "measurements/schema.json" ] || files+=("$f")
-    done
-    out='measurements/SUMMARY.md'
-    {
-      echo "# Measurement summary"
-      echo
-      echo "Generated by \`just summary\`. Do not edit by hand."
-      echo
-      if [ "${#files[@]}" -eq 0 ]; then
-        echo "No measurements have been recorded yet."
-      else
-        echo "| Date | Harness | Workload | Cache-read ratio | Invalid-rep rate | Source file |"
-        echo "|---|---|---|---|---|---|"
-        for f in "${files[@]}"; do
-          jq -r --arg src "$f" '
-            [
-              (.timestamp_utc // "unknown"),
-              (.harness // "unknown"),
-              (if (.workload | type) == "object" then (.workload.id // "unknown") else (.workload // "unknown") end),
-              (.aggregates.cache_read_ratio // "n/a" | tostring),
-              (.aggregates.invalid_rep_rate // "n/a" | tostring),
-              $src
-            ] | "| " + join(" | ") + " |"
-          ' "$f"
-        done
-      fi
-    } > "$out"
-    echo "✓ summary: wrote $out"
+    @./tools/summary.sh
 
 # Word count and citation count per document
 stats:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    printf '%-42s %8s %8s\n' DOCUMENT WORDS CITATIONS
-    total_w=0
-    for f in *.md docs/*.md; do
-      w=$(wc -w < "$f" | tr -d ' ')
-      c=$( { grep -o 'https\?://' "$f" || true; } | wc -l | tr -d ' ')
-      printf '%-42s %8s %8s\n' "$f" "$w" "$c"
-      total_w=$((total_w + w))
-    done
-    printf '%-42s %8s\n' TOTAL "$total_w"
+    @./tools/stats.sh
 
 # Generate the deterministic synthetic fixture into /private/tmp/harness-econ and print its hash
 fixture:
@@ -288,56 +69,25 @@ measure-cache reps='5' mode='warm':
     #!/usr/bin/env bash
     set -euo pipefail
     just doctor
-    bash measure/claude/run.sh --task all --reps {{reps}} --mode {{mode}}
+    bash measure/claude/run.sh --task all --reps {{ reps }} --mode {{ mode }}
 
 # A/B two claude configurations (model | mcp | system-prompt) on the same task, interleaved
 measure-ab var a b reps='5':
     #!/usr/bin/env bash
     set -euo pipefail
     just doctor
-    bash measure/claude/ab.sh --var '{{var}}' --a '{{a}}' --b '{{b}}' --reps {{reps}}
+    bash measure/claude/ab.sh --var '{{ var }}' --a '{{ a }}' --b '{{ b }}' --reps {{ reps }}
 
 # Preset: measure-ab comparing an MCP server attached (mcp_config) vs not attached at all
 measure-mcp mcp_config reps='5':
     #!/usr/bin/env bash
     set -euo pipefail
     just doctor
-    bash measure/claude/ab.sh --var mcp --a none --b '{{mcp_config}}' --reps {{reps}}
+    bash measure/claude/ab.sh --var mcp --a none --b '{{ mcp_config }}' --reps {{ reps }}
 
 # Validate FILE against the measurement schema and leak pattern, then promote it into measurements/
 record FILE:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    src="{{FILE}}"
-    if [ ! -f "$src" ]; then
-      echo "✗ record: $src not found" >&2
-      exit 1
-    fi
-    if ! jq -e 'has("schema_version") and has("timestamp_utc") and has("harness") and has("workload") and has("aggregates")' "$src" > /dev/null 2>&1; then
-      echo "✗ record: $src failed to parse or is missing a required key (schema_version, timestamp_utc, harness, workload, aggregates)" >&2
-      exit 1
-    fi
-    # Volume and home patterns are deliberately generic: they must catch any
-    # contributor's machine, not one author's. They are also written so this
-    # file does not match its own pattern -- a character class cannot match the
-    # literal '[' that starts it.
-    pattern='/Volumes/[A-Za-z0-9_-]+/|/Users/[a-z]|/home/[a-z]|ghp_[A-Za-z0-9]{20}|gho_[A-Za-z0-9]{20}|github[_]pat[_]|sk[-]ant[-]|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
-    if grep -rInE "$pattern" "$src"; then
-      echo "✗ record: personal path or credential-shaped string found in $src" >&2
-      exit 1
-    fi
-    harness=$(jq -r '.harness // "unknown"' "$src")
-    # workload may be a bare string or an object carrying an id — accept either,
-    # otherwise an object serializes into the filename as a JSON blob.
-    workload=$(jq -r 'if (.workload | type) == "object" then (.workload.id // "unknown") else (.workload // "unknown") end' "$src")
-    label=$(printf '%s-%s' "$harness" "$workload" | tr '[:upper:] ' '[:lower:]-' | tr -s '-')
-    dest="measurements/$(date -u +%Y-%m-%d)-${label}.json"
-    if [ -e "$dest" ]; then
-      echo "✗ record: $dest already exists — refusing to overwrite" >&2
-      exit 1
-    fi
-    cp "$src" "$dest"
-    echo "✓ record: promoted $src -> $dest"
+    @./tools/record.sh "{{ FILE }}"
 
 # Start a local OTLP collector for capturing GitHub Copilot spans (podman, disk-gated)
 collector-up:
