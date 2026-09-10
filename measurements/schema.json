@@ -4,7 +4,16 @@
   "title": "Harness economics measurement",
   "description": "One recorded measurement run, promoted into measurements/ by `just record`. Required top-level keys are checked by `just verify-measurements` and MUST keep these exact names.",
   "type": "object",
-  "required": ["schema_version", "timestamp_utc", "harness", "workload", "aggregates"],
+  "required": [
+    "schema_version",
+    "timestamp_utc",
+    "harness",
+    "source_surface",
+    "token_semantics",
+    "billing_basis",
+    "workload",
+    "aggregates"
+  ],
   "additionalProperties": true,
   "properties": {
     "schema_version": {
@@ -18,7 +27,10 @@
     },
     "harness": {
       "type": "string",
-      "enum": ["claude", "copilot"],
+      "enum": [
+        "claude",
+        "copilot"
+      ],
       "description": "Which agentic coding harness produced this measurement."
     },
     "harness_version": {
@@ -35,19 +47,29 @@
     },
     "variant": {
       "description": "For A/B runs: identifies both arms being compared. Free-form because the two arms may differ in kind (model id, MCP config path, system-prompt text).",
-      "type": ["string", "object"]
+      "type": [
+        "string",
+        "object"
+      ]
     },
     "cache_mode": {
       "type": "string",
-      "enum": ["cold", "warm"],
+      "enum": [
+        "cold",
+        "warm"
+      ],
       "description": "cold: reps spaced past the prompt-cache TTL. warm: reps run back-to-back, first rep discarded as a priming run."
     },
     "reps": {
       "type": "array",
-      "description": "One entry per rep actually attempted, INCLUDING invalid and priming reps — never silently dropped, only excluded from aggregates.",
+      "description": "One entry per rep actually attempted, INCLUDING invalid and priming reps \u2014 never silently dropped, only excluded from aggregates.",
       "items": {
         "type": "object",
-        "required": ["rep", "valid", "priming"],
+        "required": [
+          "rep",
+          "valid",
+          "priming"
+        ],
         "additionalProperties": true,
         "properties": {
           "rep": {
@@ -57,7 +79,7 @@
           },
           "valid": {
             "type": "boolean",
-            "description": "Whether this rep's answer matched the task's EXPECTED value. Invalid reps stay in reps[] but are excluded from aggregates — see invalid_rep_rate."
+            "description": "Whether this rep's answer matched the task's EXPECTED value. Invalid reps stay in reps[] but are excluded from aggregates \u2014 see invalid_rep_rate."
           },
           "priming": {
             "type": "boolean",
@@ -67,23 +89,50 @@
             "type": "object",
             "additionalProperties": false,
             "properties": {
-              "input_tokens": { "type": "number", "minimum": 0 },
-              "output_tokens": { "type": "number", "minimum": 0 },
-              "cache_read_input_tokens": { "type": "number", "minimum": 0 },
+              "input_tokens": {
+                "type": "number",
+                "minimum": 0
+              },
+              "output_tokens": {
+                "type": "number",
+                "minimum": 0
+              },
+              "cache_read_input_tokens": {
+                "type": "number",
+                "minimum": 0
+              },
               "cache_creation": {
                 "type": "object",
                 "additionalProperties": false,
                 "properties": {
-                  "ephemeral_5m_input_tokens": { "type": "number", "minimum": 0 },
-                  "ephemeral_1h_input_tokens": { "type": "number", "minimum": 0 }
+                  "ephemeral_5m_input_tokens": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "ephemeral_1h_input_tokens": {
+                    "type": "number",
+                    "minimum": 0
+                  }
                 }
               },
-              "cache_creation_input_tokens": { "type": "number", "minimum": 0 }
+              "cache_creation_input_tokens": {
+                "type": "number",
+                "minimum": 0
+              }
             }
           },
-          "total_cost_usd": { "type": "number", "minimum": 0 },
-          "num_turns": { "type": "number", "minimum": 0 },
-          "duration_ms": { "type": "number", "minimum": 0 }
+          "total_cost_usd": {
+            "type": "number",
+            "minimum": 0
+          },
+          "num_turns": {
+            "type": "number",
+            "minimum": 0
+          },
+          "duration_ms": {
+            "type": "number",
+            "minimum": 0
+          }
         }
       }
     },
@@ -91,43 +140,146 @@
       "type": "object",
       "description": "Computed only over valid, non-priming reps.",
       "required": [
-        "cache_read_ratio",
-        "mean_cost_usd",
-        "mean_input_tokens",
-        "mean_cache_read_tokens",
+        "cache_read_share",
         "invalid_rep_rate",
         "valid_reps",
-        "total_reps"
+        "total_reps",
+        "cache_attr_coverage"
       ],
       "additionalProperties": true,
       "properties": {
-        "cache_read_ratio": {
-          "type": "number",
+        "cache_read_share": {
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
-          "description": "sum(cache_read_input_tokens) / (sum(cache_read_input_tokens) + sum(input_tokens)) over valid, non-priming reps."
+          "description": "Share of billed input served from cache. Denominator depends on token_semantics: input_excludes_cache_read -> cache_read / (cache_read + cache_creation + input); input_includes_cache_read -> cache_read / input, because input already contains it. Deliberately NOT called a hit rate: uncached input, output and cache creation are not independently available on every surface. Null when cache attributes were absent."
         },
-        "mean_cost_usd": { "type": "number", "minimum": 0 },
-        "mean_input_tokens": { "type": "number", "minimum": 0 },
-        "mean_cache_read_tokens": { "type": "number", "minimum": 0 },
+        "cache_attr_coverage": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Fraction of spans or reps that actually carried cache attributes. A zero cache_read_share with coverage < 1 means the meter was silent, not that the cache missed -- several Copilot paths hardcode or never read these fields (microsoft/vscode#309207, #308370). Treat coverage < 1 as an unusable measurement, not a frugal one."
+        },
+        "mean_cost_usd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "mean_input_tokens": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "mean_cache_read_tokens": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "mean_cache_creation_tokens": {
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "mean_output_tokens": {
+          "minimum": 0,
+          "type": [
+            "number",
+            "null"
+          ]
+        },
         "invalid_rep_rate": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
           "description": "Fraction of non-priming reps whose answer did not match EXPECTED. Headline aggregate: a harness that gives up early looks flatteringly cheap unless this is reported alongside cost."
         },
-        "valid_reps": { "type": "integer", "minimum": 0 },
-        "total_reps": { "type": "integer", "minimum": 0 }
+        "valid_reps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "total_reps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "spans": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Leaf model-call spans counted. Parent rollup spans are excluded -- summing parent and child double-counts (microsoft/vscode#331438)."
+        }
       }
     },
     "environment": {
       "type": "object",
-      "description": "Deliberately minimal — no hostname, no username, nothing that identifies the machine or person that ran this.",
+      "description": "Deliberately minimal \u2014 no hostname, no username, nothing that identifies the machine or person that ran this.",
       "additionalProperties": false,
       "properties": {
-        "os": { "type": "string" },
-        "arch": { "type": "string" }
+        "os": {
+          "type": "string"
+        },
+        "arch": {
+          "type": "string"
+        }
       }
+    },
+    "source_surface": {
+      "type": "string",
+      "enum": [
+        "claude-code-cli",
+        "claude-code-vscode",
+        "copilot-vscode",
+        "copilot-cli",
+        "copilot-sdk",
+        "copilot-usage-api",
+        "copilot-billing-report"
+      ],
+      "description": "Which concrete surface produced this record. `harness` is too coarse: Copilot's VS Code extension, CLI, SDK, usage API and billing report are separate implementations on separate release trains that have disagreed with each other on the same spend. Never aggregate across surfaces."
+    },
+    "token_semantics": {
+      "type": "string",
+      "enum": [
+        "input_excludes_cache_read",
+        "input_includes_cache_read"
+      ],
+      "description": "Whether `input_tokens` already contains cache-read tokens. Anthropic excludes them; GitHub Copilot includes them (copilot-sdk#1160). Without this field the same arithmetic double-counts on one vendor and is correct on the other, silently."
+    },
+    "billing_basis": {
+      "type": "string",
+      "enum": [
+        "api_tokens_usd",
+        "ai_credits",
+        "premium_requests"
+      ],
+      "description": "What the cost figure is denominated in. These are not convertible: a premium-request count has no token breakdown, and AI credits are not USD."
+    },
+    "telemetry_version": {
+      "type": "string",
+      "description": "Version of the emitting harness, as the telemetry itself reported it. Copilot's meter changed at VS Code 1.120, 1.121, 1.125, 1.128, 1.129, 1.131, 1.135 and 1.137; records either side of those boundaries are not comparable."
     }
   }
 }

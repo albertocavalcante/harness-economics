@@ -27,7 +27,7 @@ out='measurements/SUMMARY.md'
           (.timestamp_utc // "unknown"),
           (.harness // "unknown"),
           (if (.workload | type) == "object" then (.workload.id // "unknown") else (.workload // "unknown") end),
-          (.aggregates.cache_read_ratio // "n/a" | tostring),
+          (.aggregates.cache_read_share // "n/a" | tostring),
           (.aggregates.invalid_rep_rate // "n/a" | tostring),
           $src
         ] | "| " + join(" | ") + " |"

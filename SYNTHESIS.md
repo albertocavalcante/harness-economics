@@ -92,7 +92,15 @@ is no token price at all, so no per-request dollar figure exists on that side to
 ### 2.2 The one directional claim that survives
 
 > **For work with idle gaps beyond ~5 minutes, on Copilot's Anthropic path, Copilot carries a cost
-> exposure with no user remedy — and Claude Code has a documented remedy for the same scenario.**
+> exposure whose only remedy is undocumented, off by default, and narrowly scoped — while Claude
+> Code's remedy for the same scenario is a documented setting.**
+
+> [!NOTE]
+> **Narrowed 2026-09-10.** This previously read "no user remedy," which contradicted
+> [track 02 §3.3](docs/02-prompt-caching.md) in this same repo: `longToolCallCachePreservation`
+> shipped in VS Code 1.123. It is a real remedy — but it is scoped to `execution_subagent` calls,
+> sends **3 probes maximum, every 4 minutes**, has no release note, and is off by default. The
+> asymmetry survives; the absolute claim did not.
 
 | Evidence | Grade |
 |---|:--:|

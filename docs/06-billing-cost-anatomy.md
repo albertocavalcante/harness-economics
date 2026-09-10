@@ -174,9 +174,11 @@ Ranked, from everything in tracks 01–05:
 1. **Cache hit rate.** At ten turns, cached costs ~21% of uncached. Nothing else is close.
 2. **Avoiding mid-session invalidation.** One model switch deep in a long session costs a full
    uncached re-read of the entire history — often more than the turn that triggered it.
-3. **Idle-gap management.** 5-minute TTL expiry mid-session is the silent killer; Claude Code's answer
-   is the 1h TTL, Copilot's is OpenAI's 24h retention, and on Copilot's Anthropic path there is
-   currently **no answer** (track 02 §3.3).
+3. **Idle-gap management.** 5-minute TTL expiry mid-session is the silent killer. Claude Code's answer
+   is the 1h TTL. Copilot's Anthropic path has only `longToolCallCachePreservation` — undocumented,
+   default-off, and scoped to `execution_subagent` (track 02 §3.3). **Copilot's OpenAI path may have
+   24h retention, but that claim is graded D and retracted** — see [`../GAPS.md`](../GAPS.md) §7b; do
+   not treat it as a shipped lever.
 4. **Tool surface size.** Position-0 tokens, taxed every turn, with the largest invalidation radius.
 5. **Compaction timing.** Fixed overhead; you choose when to pay it. Cold compaction is worst-case.
 6. Model and effort selection — real, but dominated by the above in long agentic sessions.

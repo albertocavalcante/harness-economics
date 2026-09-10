@@ -136,10 +136,16 @@ run_one_task() {
     | (map(select(.priming == false and .valid == true))) as $valid_reps
     | ($valid_reps | length) as $n_valid
     | {
-        cache_read_ratio: (
+        cache_read_share: (
           ($valid_reps | map(.usage.cache_read_input_tokens) | add // 0) as $cr
+          | ($valid_reps | map(.usage.cache_creation_input_tokens // 0) | add // 0) as $cc
           | ($valid_reps | map(.usage.input_tokens) | add // 0) as $inp
-          | (if ($cr + $inp) > 0 then $cr / ($cr + $inp) else 0 end)
+          | (if ($cr + $cc + $inp) > 0 then $cr / ($cr + $cc + $inp) else null end)
+        ),
+        cache_attr_coverage: (
+          if $n_valid > 0
+          then (($valid_reps | map(select(.usage.cache_read_input_tokens != null)) | length) / $n_valid)
+          else null end
         ),
         mean_cost_usd: (if $n_valid > 0 then ($valid_reps | map(.total_cost_usd) | add) / $n_valid else 0 end),
         mean_input_tokens: (if $n_valid > 0 then ($valid_reps | map(.usage.input_tokens) | add) / $n_valid else 0 end),
@@ -168,6 +174,9 @@ run_one_task() {
       schema_version: $schema_version,
       timestamp_utc: $timestamp_utc,
       harness: $harness,
+      source_surface: "claude-code-cli",
+      token_semantics: "input_excludes_cache_read",
+      billing_basis: "api_tokens_usd",
       harness_version: $harness_version,
       workload: $workload,
       model: $model,
@@ -201,7 +210,7 @@ print_summary() {
     "mean cost (USD):   \(.aggregates.mean_cost_usd)",
     "mean input tokens: \(.aggregates.mean_input_tokens)",
     "mean cache-read:   \(.aggregates.mean_cache_read_tokens)",
-    "cache read ratio:  \(.aggregates.cache_read_ratio)"
+    "cache read share:  \(.aggregates.cache_read_share)"
   '
   echo ""
 }

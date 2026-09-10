@@ -220,7 +220,7 @@ measurement="$(
     variant: { var: $var, a: $a, b: $b },
     reps: (($reps_a | map(. + {arm: "A"})) + ($reps_b | map(. + {arm: "B"}))),
     aggregates: {
-      cache_read_ratio: (
+      cache_read_share: (
         (($reps_a + $reps_b) | map(select(.valid == true)) | map(.usage.cache_read_input_tokens) | add // 0) as $cr
         | (($reps_a + $reps_b) | map(select(.valid == true)) | map(.usage.input_tokens) | add // 0) as $inp
         | (if ($cr + $inp) > 0 then $cr / ($cr + $inp) else 0 end)

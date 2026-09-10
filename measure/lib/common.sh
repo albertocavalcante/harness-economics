@@ -23,10 +23,17 @@ repo_root() {
 }
 
 # ok "name" "msg"   → "✓ name: msg" on stdout
+# warn "name" "msg" → "! name: msg" on stderr, exit status untouched
 # fail "name" "msg" → "✗ name: msg" on stderr
 # die "name" "msg"  → fail, then exit 1
 ok() {
   printf '✓ %s: %s\n' "$1" "$2"
+}
+
+# A run that completed but produced an untrustworthy number is not a failure —
+# it must still be visibly distinct from one that produced a good number.
+warn() {
+  printf '! %s: %s\n' "$1" "$2" >&2
 }
 
 fail() {
