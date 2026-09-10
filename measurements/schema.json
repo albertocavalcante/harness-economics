@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://harness-economics.example/schema/measurement.json",
+  "title": "Harness economics measurement",
+  "description": "One recorded measurement run, promoted into measurements/ by `just record`. Required top-level keys are checked by `just verify-measurements` and MUST keep these exact names.",
+  "type": "object",
+  "required": ["schema_version", "timestamp_utc", "harness", "workload", "aggregates"],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version this file was produced against."
+    },
+    "timestamp_utc": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp the measurement run completed, ISO-8601."
+    },
+    "harness": {
+      "type": "string",
+      "enum": ["claude", "copilot"],
+      "description": "Which agentic coding harness produced this measurement."
+    },
+    "harness_version": {
+      "type": "string",
+      "description": "Version string of the harness CLI (e.g. `claude --version` output)."
+    },
+    "workload": {
+      "type": "string",
+      "description": "Identifier of the task or task set measured (e.g. a fixture task id like T2, or `all`)."
+    },
+    "model": {
+      "type": "string",
+      "description": "Model id used for this run, when a single model applies."
+    },
+    "variant": {
+      "description": "For A/B runs: identifies both arms being compared. Free-form because the two arms may differ in kind (model id, MCP config path, system-prompt text).",
+      "type": ["string", "object"]
+    },
+    "cache_mode": {
+      "type": "string",
+      "enum": ["cold", "warm"],
+      "description": "cold: reps spaced past the prompt-cache TTL. warm: reps run back-to-back, first rep discarded as a priming run."
+    },
+    "reps": {
+      "type": "array",
+      "description": "One entry per rep actually attempted, INCLUDING invalid and priming reps — never silently dropped, only excluded from aggregates.",
+      "items": {
+        "type": "object",
+        "required": ["rep", "valid", "priming"],
+        "additionalProperties": true,
+        "properties": {
+          "rep": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "0-indexed rep number within this measurement."
+          },
+          "valid": {
+            "type": "boolean",
+            "description": "Whether this rep's answer matched the task's EXPECTED value. Invalid reps stay in reps[] but are excluded from aggregates — see invalid_rep_rate."
+          },
+          "priming": {
+            "type": "boolean",
+            "description": "True only for the discarded first rep of a warm-mode run. Recorded, never counted in aggregates."
+          },
+          "usage": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "input_tokens": { "type": "number", "minimum": 0 },
+              "output_tokens": { "type": "number", "minimum": 0 },
+              "cache_read_input_tokens": { "type": "number", "minimum": 0 },
+              "cache_creation": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "ephemeral_5m_input_tokens": { "type": "number", "minimum": 0 },
+                  "ephemeral_1h_input_tokens": { "type": "number", "minimum": 0 }
+                }
+              },
+              "cache_creation_input_tokens": { "type": "number", "minimum": 0 }
+            }
+          },
+          "total_cost_usd": { "type": "number", "minimum": 0 },
+          "num_turns": { "type": "number", "minimum": 0 },
+          "duration_ms": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "aggregates": {
+      "type": "object",
+      "description": "Computed only over valid, non-priming reps.",
+      "required": [
+        "cache_read_ratio",
+        "mean_cost_usd",
+        "mean_input_tokens",
+        "mean_cache_read_tokens",
+        "invalid_rep_rate",
+        "valid_reps",
+        "total_reps"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "cache_read_ratio": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "sum(cache_read_input_tokens) / (sum(cache_read_input_tokens) + sum(input_tokens)) over valid, non-priming reps."
+        },
+        "mean_cost_usd": { "type": "number", "minimum": 0 },
+        "mean_input_tokens": { "type": "number", "minimum": 0 },
+        "mean_cache_read_tokens": { "type": "number", "minimum": 0 },
+        "invalid_rep_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Fraction of non-priming reps whose answer did not match EXPECTED. Headline aggregate: a harness that gives up early looks flatteringly cheap unless this is reported alongside cost."
+        },
+        "valid_reps": { "type": "integer", "minimum": 0 },
+        "total_reps": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "description": "Deliberately minimal — no hostname, no username, nothing that identifies the machine or person that ran this.",
+      "additionalProperties": false,
+      "properties": {
+        "os": { "type": "string" },
+        "arch": { "type": "string" }
+      }
+    }
+  }
+}

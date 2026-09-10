@@ -1,0 +1,57 @@
+# OpenTelemetry Collector config for capturing GitHub Copilot spans.
+#
+# Receives OTLP/HTTP on :4318 (the VS Code Copilot default) and writes every span
+# to a JSON-lines file for offline parsing by ../copilot/parse-spans.sh.
+#
+# Deliberately minimal: no sampling, no batching beyond a small timeout, no export
+# to any remote backend. Everything stays on the local machine.
+
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  # Small batch window so spans land on disk promptly during an interactive session.
+  batch:
+    timeout: 2s
+    send_batch_size: 64
+
+  # Drop resource attributes that identify the machine or the user. This repo is
+  # public and its measurement outputs are committed; host identity must not be
+  # part of the captured data even before parse-spans.sh projects fields out.
+  attributes/scrub:
+    actions:
+      - key: host.name
+        action: delete
+      - key: host.id
+        action: delete
+      - key: user.name
+        action: delete
+      - key: os.description
+        action: delete
+
+exporters:
+  # JSON lines to disk. rotation keeps a runaway session from filling the volume.
+  file:
+    path: /data/spans.jsonl
+    rotation:
+      max_megabytes: 64
+      max_backups: 2
+
+service:
+  telemetry:
+    logs:
+      level: warn
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [attributes/scrub, batch]
+      exporters: [file]
+    metrics:
+      receivers: [otlp]
+      processors: [attributes/scrub, batch]
+      exporters: [file]

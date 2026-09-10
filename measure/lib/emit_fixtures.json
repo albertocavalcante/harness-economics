@@ -1,0 +1,53 @@
+[
+  {
+    "_name": "full-cache-creation-object",
+    "_note": "Both ephemeral fields present and numeric; cache_creation_input_tokens present too.",
+    "result": "ComputeInvoiceTotal",
+    "session_id": "sess_example_not_real",
+    "total_cost_usd": 0.0231,
+    "num_turns": 3,
+    "duration_ms": 4210,
+    "usage": {
+      "input_tokens": 512,
+      "output_tokens": 48,
+      "cache_read_input_tokens": 9000,
+      "cache_creation_input_tokens": 250,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 200,
+        "ephemeral_1h_input_tokens": 50
+      }
+    }
+  },
+  {
+    "_name": "cache_creation-absent",
+    "_note": "No prompt caching wrote anything this turn: usage.cache_creation is missing entirely, and so is usage.cache_creation_input_tokens.",
+    "result": "7",
+    "session_id": "sess_example_not_real",
+    "total_cost_usd": 0.0041,
+    "num_turns": 1,
+    "duration_ms": 900,
+    "usage": {
+      "input_tokens": 120,
+      "output_tokens": 10,
+      "cache_read_input_tokens": 0
+    }
+  },
+  {
+    "_name": "null-ephemerals",
+    "_note": "usage.cache_creation IS present but both ephemeral fields are explicitly null (observed shape, not hypothetical).",
+    "result": "171",
+    "session_id": "sess_example_not_real",
+    "total_cost_usd": 0.0189,
+    "num_turns": 5,
+    "duration_ms": 15300,
+    "usage": {
+      "input_tokens": 4032,
+      "output_tokens": 210,
+      "cache_read_input_tokens": 12000,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": null,
+        "ephemeral_1h_input_tokens": null
+      }
+    }
+  }
+]
