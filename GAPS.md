@@ -86,9 +86,10 @@ than assumed.
 | Billing AI usage report | **High** | Inaccessible — token lacked `manage_billing:copilot` |
 | Copilot usage metrics API | **High** | Inaccessible — same scope gap |
 
-**Every Copilot claim in this repo is documentation-derived, not observed.** The OTel field names in
-track 05 §2.1 come from VS Code's published documentation; we did not see a span. The pricing in track
-06 comes from GitHub's published rate table; we did not see an invoice.
+> [!WARNING]
+> **Every Copilot claim in this repo is documentation-derived, not observed.** The OTel field names in
+> track 05 §2.1 come from VS Code's published documentation; we did not see a span. The pricing in
+> track 06 comes from GitHub's published rate table; we did not see an invoice.
 
 This is the single largest limitation of the current edition and it is stated in the README rather
 than buried here.

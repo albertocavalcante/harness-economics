@@ -83,6 +83,13 @@ direct verification against a local binary. See [`GAPS.md`](GAPS.md) §3.
 Cross-cutting conclusions are in [`SYNTHESIS.md`](SYNTHESIS.md). Method and its limits are in
 [`METHODOLOGY.md`](METHODOLOGY.md). What could not be determined is in [`GAPS.md`](GAPS.md).
 
+**Quick references**, if you came here for a lookup rather than the argument:
+
+| | |
+|---|---|
+| [`reference/SETTINGS.md`](reference/SETTINGS.md) | Every cache and telemetry setting in both harnesses — effect, default, version, evidence grade |
+| [`reference/KNOWN-ISSUES.md`](reference/KNOWN-ISSUES.md) | Open and closed defects, blast radius, workarounds, and which "closed" issues are unauditable |
+
 **[`TIMELINE.md`](TIMELINE.md) is where the evidence lives.** Every capability is anchored to the
 changelog entry or release note that shipped it, with an explicit **A–E grade** separating a versioned
 vendor changelog entry (A) from a merged PR that never got a release note (B), a maintainer's comment

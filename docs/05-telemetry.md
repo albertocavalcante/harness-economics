@@ -31,6 +31,9 @@ false as of 2026. Copilot ships OTel in VS Code and an enterprise path, and by s
 Enabled with `CLAUDE_CODE_ENABLE_TELEMETRY=1`. Per
 [Claude Code: monitoring usage, fetched 2026-09-10](https://code.claude.com/docs/en/monitoring-usage):
 
+<details>
+<summary><strong>Claude Code metrics catalog (7 rows)</strong></summary>
+
 | Metric | Unit | Notes |
 |---|---|---|
 | `claude_code.token.usage` | tokens | `type` ∈ `input`, `output`, **`cacheRead`**, **`cacheCreation`** |
@@ -41,6 +44,8 @@ Enabled with `CLAUDE_CODE_ENABLE_TELEMETRY=1`. Per
 | `claude_code.commit.count` / `pull_request.count` | — | |
 | `claude_code.code_edit_tool.decision` | — | Permission decisions |
 
+</details>
+
 **Metrics with changelog evidence but absent from that docs page.** `claude_code.llm_request` and
 `claude_code.active_time.total` shipped in
 [v2.1.139](https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md#21139),
@@ -49,12 +54,13 @@ Enabled with `CLAUDE_CODE_ENABLE_TELEMETRY=1`. Per
 and `claude_code.assistant_response` in
 [v2.1.193](https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md#21193).
 
-**Metrics with no public evidence at all — treat as unconfirmed.** `claude_code.compaction`,
-`claude_code.mcp.rpc`, `claude_code.subagent.spawn`, and `claude_code.tool.execution` appear **neither
-on the docs page nor anywhere in the changelog**. Our only basis for them is string inspection of the
-v2.1.220 binary, which establishes that the names exist in the shipped artifact — not that the metrics
-are emitted, nor what their attributes are. **Do not build a dashboard on these without confirming
-they emit in your own environment.** Downgraded accordingly in [`../GAPS.md`](../GAPS.md) §1.
+> [!WARNING]
+> **Metrics with no public evidence at all — treat as unconfirmed.** `claude_code.compaction`,
+> `claude_code.mcp.rpc`, `claude_code.subagent.spawn`, and `claude_code.tool.execution` appear **neither
+> on the docs page nor anywhere in the changelog**. Our only basis for them is string inspection of the
+> v2.1.220 binary, which establishes that the names exist in the shipped artifact — not that the metrics
+> are emitted, nor what their attributes are. **Do not build a dashboard on these without confirming
+> they emit in your own environment.** Downgraded accordingly in [`../GAPS.md`](../GAPS.md) §1.
 
 The same caveat applies wherever this repo cites `claude_code.compaction`'s `trigger` attribute
 (track 03 §2.6) or `claude_code.mcp.rpc` (track 04 §4).
@@ -74,7 +80,7 @@ plugin.name, marketplace.name, mcp_server.name, mcp_tool.name`. Two are worth ca
 
 The one with no counterpart anywhere in Copilot:
 
-```
+```sh
 OTEL_LOG_RAW_API_BODIES=file:<dir>    # full Messages API request + response JSON to disk
 ```
 
@@ -88,21 +94,26 @@ writes it inside the repository. See [`../METHODOLOGY.md`](../METHODOLOGY.md).
 
 ### 1.3 In-product surfaces
 
-| Surface | Shows | Requires |
+| Surface | Shows | Shipped |
 |---|---|---|
-| `/usage` → `Prompt cache (main)` | hit ratio, miss count, warm/cold | v2.1.251+ |
-| …with `likely cause: tool definitions changed` | **cause of the last miss** | v2.1.260+ |
-| statusline `prompt_cache` object | same numbers, live | v2.1.251+ |
+| per-session prompt-cache line | hit ratio, misses, tokens re-cached, warm/cold | [v2.1.251](https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md?plain=1#L423) |
+| …with `likely cause: …` | **cause of the last miss** | [v2.1.260](https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md?plain=1#L193) |
+| statusline `prompt_cache` object | same numbers, live | v2.1.251 |
 | `current_usage` in statusline | per-turn `cache_read_input_tokens` / `cache_creation_input_tokens` | — |
 | `claude -p … --output-format json` | `usage.cache_creation.ephemeral_{5m,1h}_input_tokens` | — |
 
 Miss-cause attribution is the capability with no equivalent in any competing harness we are aware of.
 
-**A caveat we could not resolve.** On the v2.1.220 binary available to us, the miss-cause emitter
-appears to be present but gated behind a feature flag defaulting off, with no environment-variable
-override — unlike neighbouring flags that do have one. We could not test v2.1.260+, so we cannot say
-whether the documented version floor is sufficient on its own or whether server-side enablement is also
-required. Recorded in [`../GAPS.md`](../GAPS.md) §1 rather than asserted either way.
+Anthropic's docs describe this panel under `/usage`; the changelog entry that shipped it says `/cost`.
+Both are correct — `/cost` and `/stats` became tabs inside `/usage` in v2.1.118 — but **search the
+changelog for `/cost`**, not `/usage`. Same note in [track 02 §7](02-prompt-caching.md).
+
+> [!NOTE]
+> **A caveat we could not resolve.** On the v2.1.220 binary available to us, the miss-cause emitter
+> appears to be present but gated behind a feature flag defaulting off, with no environment-variable
+> override — unlike neighbouring flags that do have one. We could not test v2.1.260+, so we cannot say
+> whether the documented version floor is sufficient on its own or whether server-side enablement is
+> also required. Recorded in [`../GAPS.md`](../GAPS.md) §1 rather than asserted either way.
 
 ### 1.4 Cardinality controls
 
@@ -139,7 +150,7 @@ subagents, so a subagent's `invoke_agent` appears as a child of the parent's `ex
 
 **Token attributes** on `invoke_agent` and `chat`:
 
-```
+```text
 gen_ai.usage.input_tokens
 gen_ai.usage.output_tokens
 gen_ai.usage.cache_read.input_tokens        # "when available"
@@ -191,8 +202,10 @@ historical Copilot telemetry from that window should treat cache figures in it a
 
 ### 2.4 Copilot CLI
 
-**Correcting an earlier claim.** This document previously stated that Copilot CLI had no prompt caching
-and that [#3808](https://github.com/github/copilot-cli/issues/3808) sat unanswered. Both were wrong.
+> [!IMPORTANT]
+> **Correcting an earlier claim.** This document previously stated that Copilot CLI had no prompt
+> caching and that [#3808](https://github.com/github/copilot-cli/issues/3808) sat unanswered. Both were
+> wrong.
 
 The issue was **split**. Its `cache_control` half became
 [#4256](https://github.com/github/copilot-cli/issues/4256), **closed completed 2026-08-09** — Claude

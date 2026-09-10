@@ -127,9 +127,10 @@ Three of those five are small changes. This document has a short half-life and s
 
 ## 6. If you only change one thing
 
-Measure your own cache hit rate before optimising anything else. Both products will tell you the two
-numbers that matter — tokens read from cache, tokens written to cache — and the ratio between them
-answers more than any comparison table, including this one.
+> [!TIP]
+> Measure your own cache hit rate before optimising anything else. Both products will tell you the two
+> numbers that matter — tokens read from cache, tokens written to cache — and the ratio between them
+> answers more than any comparison table, including this one.
 
 A session that shows high cache *creation* turn after turn is not an expensive model problem. It is a
 prefix-stability problem, and it is almost always caused by something small and fixable: a model

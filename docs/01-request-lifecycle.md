@@ -34,7 +34,7 @@ Neither product has a stateful session on the provider side. The
 [Messages API is stateless](https://platform.claude.com/docs/en/api/messages) — every request carries
 the full conversation. A harness turn therefore looks like:
 
-```
+```text
 request_N   = system_prompt + tool_definitions + project_context + [turn_1 … turn_N-1] + turn_N
 request_N+1 = system_prompt + tool_definitions + project_context + [turn_1 … turn_N]   + turn_N+1
 ```
@@ -59,6 +59,25 @@ Requests are ordered so the least volatile content sits earliest:
 | 1 | System prompt | Core instructions, tool definitions | Tool set changes, or Claude Code is upgraded |
 | 2 | Project context | `CLAUDE.md`, auto-memory, unscoped rules | Session start, `/clear`, `/compact` |
 | 3 | Conversation | Messages, responses, tool results | Every turn |
+
+```mermaid
+flowchart TD
+    A["1 · TOOLS<br/>tool definitions<br/>changes on: MCP connect/disconnect, plugin, deny rule"]
+    B["2 · SYSTEM<br/>core instructions<br/>changes on: harness upgrade, output style"]
+    C["3 · PROJECT CONTEXT<br/>CLAUDE.md, auto-memory, rules<br/>changes on: session start, /clear, /compact"]
+    D["4 · CONVERSATION<br/>messages, responses, tool results<br/>changes on: every turn — append-only"]
+    A --> B --> C --> D
+    A -. "a byte changed here<br/>invalidates all of this" .-> D
+
+    style A fill:#fde2e2,stroke:#c33
+    style B fill:#fdeee2,stroke:#c83
+    style C fill:#fdf9e2,stroke:#aa3
+    style D fill:#e6f5e6,stroke:#3a3
+```
+
+Read it top to bottom as increasing volatility and decreasing blast radius. **The cheapest place to put
+volatile content is the bottom; the most expensive is the top.** Everything else in this repo is a
+consequence of that.
 
 The API's own render order is `tools` → `system` → `messages`, per
 [Anthropic's prompt caching docs, fetched 2026-09-10](https://platform.claude.com/docs/en/build-with-claude/prompt-caching),

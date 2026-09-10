@@ -81,11 +81,12 @@ Deferral is unavailable or disabled in these cases, and this list is the practic
 - Any server or tool marked `alwaysLoad`
 - Definitions kept upfront by threshold-based loading
 
-**The silent case.** When tools do load into the prefix, the most common invalidation is a server
-connecting or disconnecting **with no user action at all**: a stdio server's process exits, an HTTP
-session expires, or a server reconnects after a transient failure. A connected server can also push a
-dynamic tool update that changes its list mid-session. From the user's side this is an unexplained
-expensive turn.
+> [!CAUTION]
+> **The silent case.** When tools do load into the prefix, the most common invalidation is a server
+> connecting or disconnecting **with no user action at all**: a stdio server's process exits, an HTTP
+> session expires, or a server reconnects after a transient failure. A connected server can also push a
+> dynamic tool update that changes its list mid-session. From the user's side this is an unexplained
+> expensive turn.
 
 Editing MCP config does **not** itself invalidate anything — the change takes effect only on restart,
 which is when the connect/disconnect actually happens.

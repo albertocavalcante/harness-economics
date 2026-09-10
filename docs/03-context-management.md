@@ -99,10 +99,11 @@ A **`claude_code.compaction`** metric carrying `trigger` (`auto` or `manual`) an
 be the cleanest signal for "how much of my spend is compaction overhead," and would separate
 user-initiated from automatic compaction — the distinction that matters for tuning.
 
-⚠️ **Treat this as unconfirmed.** The name appears in string inspection of the v2.1.220 binary but
-**nowhere in Anthropic's documentation or in the changelog through v2.1.267**. That establishes the
-string exists in the artifact, not that the metric is emitted or that those are its attributes. Confirm
-against your own collector before relying on it. See [`../GAPS.md`](../GAPS.md) §1.
+> [!WARNING]
+> **Treat this as unconfirmed.** The name appears in string inspection of the v2.1.220 binary but
+> **nowhere in Anthropic's documentation or in the changelog through v2.1.267**. That establishes the
+> string exists in the artifact, not that the metric is emitted or that those are its attributes. Confirm
+> against your own collector before relying on it. See [`../GAPS.md`](../GAPS.md) §1.
 
 What *is* evidenced: compaction's cache behaviour has been actively worked on. v2.1.70 —
 `Improved compaction to preserve images in the summarizer request, allowing prompt cache reuse for
@@ -122,9 +123,10 @@ Re-routing costs nothing at a boundary where the cache is already being discarde
 That is a genuinely better use of the event than Claude Code makes of it. Claude Code rebuilds the same
 prefix with the same model and does not treat compaction as a decision point.
 
-**Correcting an earlier claim.** This document previously listed "whether users can invoke it manually"
-and "whether it emits telemetry" as undocumented. Both are documented; we had not looked at the release
-notes:
+> [!IMPORTANT]
+> **Correcting an earlier claim.** This document previously listed "whether users can invoke it
+> manually" and "whether it emits telemetry" as undocumented. Both are documented; we had not looked at
+> the release notes:
 
 | Date | Release | Evidence |
 |---|---|---|

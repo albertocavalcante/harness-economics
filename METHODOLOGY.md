@@ -77,9 +77,10 @@ the variable under test.
 Runs use `--bare`, which strips hooks, LSP, plugin sync, auto-memory, and `CLAUDE.md` discovery —
 removing most uncontrolled inputs.
 
-**The consequence must be stated wherever the number appears:** `--bare` forces `ANTHROPIC_API_KEY`,
-so the reported `total_cost_usd` is an API-key list-price figure, **not** what a subscription user
-pays. It answers "what would this have cost at API rates." This is itself a finding, in track 06 §5.
+> [!WARNING]
+> **The consequence must be stated wherever the number appears:** `--bare` forces `ANTHROPIC_API_KEY`,
+> so the reported `total_cost_usd` is an API-key list-price figure, **not** what a subscription user
+> pays. It answers "what would this have cost at API rates." This is itself a finding, in track 06 §5.
 
 ### 3.5 The comparable unit
 

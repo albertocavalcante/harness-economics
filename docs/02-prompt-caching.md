@@ -120,7 +120,7 @@ Claude Code splits every request into one of two TTL buckets:
 Precedence, first match wins
 ([Claude Code prompt caching, fetched 2026-09-10](https://code.claude.com/docs/en/prompt-caching)):
 
-```
+```text
 1. FORCE_PROMPT_CACHING_5M=1                      # both buckets, debugging override
 2. CLAUDE_CODE_{,SUBAGENT_}PROMPT_CACHE_TTL       # env, per bucket
 3. promptCacheTtl / subagentPromptCacheTtl        # settings.json, per bucket
@@ -223,6 +223,34 @@ with an undocumented default-off probe loop. Both are answers. Only one is finda
 shows "exactly one cache-write price, always 1.25× base, and the 2× rate never appears."
 
 ## 4. What invalidates the cache
+
+```mermaid
+flowchart TD
+    Q{"What just changed?"}
+
+    Q -->|"Model, effort, or fast mode"| FULL["FULL RE-READ<br/>entire history, uncached"]
+    Q -->|"Idle past the TTL"| FULL
+    Q -->|"Harness upgraded"| FULL
+    Q -->|"Tool set changed"| TS{"Tool search<br/>deferring them?"}
+    TS -->|"yes — the default"| SAFE
+    TS -->|"no — gateway, older<br/>provider, alwaysLoad"| FULL
+
+    Q -->|"Appended a message<br/>skill, plan mode, /recap"| SAFE["CACHE INTACT<br/>appended after the prefix"]
+    Q -->|"Edited CLAUDE.md"| INERT["NO EFFECT EITHER WAY<br/>inert until /clear or restart"]
+    Q -->|"/rewind"| WARM["READS AN OLDER WARM ENTRY<br/>cheaper than /compact"]
+    Q -->|"/compact"| PART["CONVERSATION LAYER REBUILT<br/>system prompt still cache-hits"]
+
+    style FULL fill:#fde2e2,stroke:#c33
+    style SAFE fill:#e6f5e6,stroke:#3a3
+    style WARM fill:#e6f5e6,stroke:#3a3
+    style PART fill:#fdf9e2,stroke:#aa3
+    style INERT fill:#eee,stroke:#999
+```
+
+> [!TIP]
+> The two paths people get wrong: **`/rewind` is cheaper than `/compact`** when abandoning a line of
+> work, and **editing `CLAUDE.md` mid-session does nothing at all** — which is exactly why it is
+> cache-safe.
 
 ### 4.1 Claude Code — documented exhaustively
 

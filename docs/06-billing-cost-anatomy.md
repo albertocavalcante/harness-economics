@@ -73,14 +73,14 @@ every model.
 
 Let *P* be the prefix size in tokens and *N* the number of turns reading it.
 
-```
+```text
 uncached:        N · P · 1.0
 cached, 5m TTL:  P · 1.25  +  (N−1) · P · 0.1
 cached, 1h TTL:  P · 2.00  +  (N−1) · P · 0.1
 ```
 
 | Turns over the prefix | Uncached | 5m TTL | 1h TTL |
-|---|---|---|---|
+|---:|---:|---:|---:|
 | 1 | 1.00 | 1.25 | 2.00 |
 | 2 | 2.00 | **1.35** | 2.10 |
 | 3 | 3.00 | **1.45** | **2.20** |
@@ -125,9 +125,10 @@ That means the reported figure is an **API-key list-price cost**, not what a Pro
 pays. The number is real, but it answers "what would this have cost at API rates," not "what did this
 cost me."
 
-It follows that a subscription user reading `total_cost_usd` in any tooling is reading a notional
-figure. We flag it here because it is the kind of number that gets screenshotted into a cost comparison
-without the caveat attached.
+> [!WARNING]
+> It follows that a subscription user reading `total_cost_usd` in any tooling is reading a notional
+> figure. We flag it here because it is the kind of number that gets screenshotted into a cost comparison
+> without the caveat attached.
 
 ## 6. Attribution
 
