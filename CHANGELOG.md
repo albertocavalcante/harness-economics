@@ -4,6 +4,48 @@ Research log. Newest first.
 
 ---
 
+## 2026-09-10 — Changelog-anchored evidence pass
+
+Version-anchored claims previously rested on documentation pages asserting "requires vX". Each is now
+tied to the changelog entry that shipped it, or explicitly marked as unevidenced. Source: the
+`anthropics/claude-code` CHANGELOG at commit `9cdc2a4`, 390 versions, latest **v2.1.267**.
+
+**Corrected**
+
+| Was | Now |
+|---|---|
+| `promptCacheTtl` requires v2.1.242 (per Anthropic docs) | Shipped in **v2.1.243**. **There is no v2.1.242 section in the changelog** — it skips 2.1.241 → 2.1.243. The docs are off by one. Verified directly |
+| `/usage` shows the prompt-cache panel | The shipping entry says **`/cost`**. Both are true — `/cost` became a tab inside `/usage` in v2.1.118 — but the citable name is `/cost` |
+| Four undocumented metrics "verified present in v2.1.220" | Downgraded to **unconfirmed**. Absent from docs *and* changelog; a string in a binary is not proof a metric is emitted |
+| `defer_loading` is Claude Code's deferral key | Not in the changelog at all. The feature shipped as `MCPSearch` (v2.1.7), renamed `ToolSearch` (~v2.1.20, never announced); user-facing controls are `alwaysLoad` and `auto:N` |
+
+**Newly evidenced**
+
+- `ENABLE_PROMPT_CACHING_1H` + `FORCE_PROMPT_CACHING_5M` + the `_BEDROCK` deprecation — all one line, **v2.1.108**
+- `OTEL_LOG_RAW_API_BODIES` — **v2.1.111**
+- `--bare` forcing `ANTHROPIC_API_KEY` — **v2.1.81**, confirming the caveat on every cost figure this repo reports
+- Miss-cause attribution — **v2.1.260**, matching the docs
+- Effort change keeping the cache on Fable 5.1 — **v2.1.260**
+- Subagent `experimental.cacheTtl` — **v2.1.248**
+- Tool search default-on — **v2.1.7**
+
+**New finding**
+
+Roughly **70 changelog entries touch prompt caching**, and most are *fixes for cache-invalidation
+regressions* rather than features — including a timestamp in the system prompt (v2.1.42), a 12×
+cost multiplier from one SDK bug (v2.1.72), an OAuth refresh breaking the prefix hourly (v2.1.248),
+and a `/model` switch still re-sending every tool definition as of **v2.1.267**. Written up in
+`docs/02` §5.1. It is the strongest evidence in the repo that prefix stability decays and must be
+measured rather than reasoned about.
+
+**New conflicts recorded in `GAPS.md`**
+
+- Docs and changelog disagree on mid-session output-style switching (§2b).
+- Fable 5.1 ships `$0.25/Mtok` cache reads against a `$10/Mtok` input rate — **2.5%, not the ~10%**
+  this repo quotes as the general multiplier. Verified verbatim; unexplained (§2c).
+
+---
+
 ## 2026-09-10 — Initial compilation
 
 **Added**

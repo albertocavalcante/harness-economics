@@ -12,36 +12,70 @@ most useful answer in the document.
 
 ---
 
-## 1. Feature-flag and version uncertainty
+## 1. Metric names with no public evidence
 
 | Item | Confidence | Status |
 |---|---|---|
-| Claude Code miss-cause attribution (`likely cause: …`) | Medium | **Unresolved** |
+| `claude_code.compaction`, `.mcp.rpc`, `.subagent.spawn`, `.tool.execution` | **Low** | **Unconfirmed — do not build on these** |
 
-Anthropic documents this as requiring Claude Code v2.1.260+. The binary available for this research was
-**v2.1.220**, on which the emitter appears to be present but gated behind a feature flag that defaults
-off and — unlike neighbouring flags — exposes no environment-variable override.
+These four names appear in string inspection of the v2.1.220 binary. They appear **nowhere** in
+Anthropic's telemetry documentation, and nowhere in the changelog through v2.1.267 — which *does*
+announce comparable metrics (`claude_code.llm_request` and `.active_time.total` at v2.1.139,
+`claude_code.tool` spans at v2.1.145, `.assistant_response` at v2.1.193).
 
-We therefore cannot distinguish between three possibilities: the documented version floor is sufficient
-on its own; the feature additionally requires server-side enablement; or the gate was removed between
-2.1.220 and 2.1.260. **Track 05 §1.3 states the caveat rather than picking one.**
+A string in a binary establishes that the name exists in the artifact. It does not establish that the
+metric is emitted, that it is enabled by default, or what its attributes are. The `trigger: auto|manual`
+and `message_count` attributes cited in track 03 §2.6 rest on the same weak basis.
 
-*To close:* install v2.1.260+ and check whether `/usage` reports a cause after a deliberate
-invalidation (e.g. a mid-session `/model` switch).
+*To close:* run a session against a local OTLP collector and see whether they appear.
 
-## 2. Claude Code TTL controls on newer versions
+### 1b. Miss-cause attribution — mostly resolved
+
+The version floor is now **confirmed by the changelog**, not just the docs — v2.1.260:
+`Added a likely cause for prompt-cache misses (e.g. tool definitions or system prompt changed, idle
+past the TTL) to /cost and the status line's prompt_cache field`.
+
+What remains open: on the v2.1.220 binary the emitter appears present but gated behind a flag that
+defaults off with no environment-variable override. We could not test v2.1.260+, so we cannot say
+whether the version bump alone is sufficient or whether server-side enablement is also required.
+
+## 2. TTL controls — evidence now split
 
 | Item | Confidence | Status |
 |---|---|---|
-| `promptCacheTtl` / `subagentPromptCacheTtl` absent in v2.1.220 | **High** | Verified |
-| Their behaviour on v2.1.242+ | Medium | Documented, not observed |
+| `promptCacheTtl` / `subagentPromptCacheTtl` shipped in **v2.1.243** | **High** | Changelog-confirmed |
+| Absent from v2.1.220 | **High** | Verified against the binary |
+| `CLAUDE_CODE_{,SUBAGENT_}PROMPT_CACHE_TTL` env vars | **Low** | Documented, **never announced** |
+| The six-level precedence order (track 02 §3.1) | Medium | Documentation-derived only |
 
-We confirmed directly that these settings do not exist in the v2.1.220 binary — they are not merely
-undocumented there. Their documented behaviour on v2.1.242+ is taken from Anthropic's docs and has not
-been observed by us. The six-level precedence order in track 02 §3.1 is likewise documentation-derived.
+**Anthropic's documentation is off by one on this.** It says the settings require v2.1.242. The
+changelog places them in **v2.1.243**, and **there is no v2.1.242 section at all** — the file skips
+from 2.1.241 to 2.1.243. We verified this directly rather than taking it second-hand. Either the docs
+are wrong or 2.1.242 was pulled before release; we cannot tell which.
 
-*To close:* upgrade and confirm via `claude -p "hello" --output-format json`, reading which of
-`ephemeral_5m_input_tokens` / `ephemeral_1h_input_tokens` is populated.
+The two environment variables are the weaker claim: **zero occurrences in the changelog**. They may
+work exactly as documented, but they shipped silently and we have not exercised them.
+
+## 2b. Docs and changelog disagree on output styles
+
+Track 02 §4.1 lists output-style switching as cache-relevant, sourced to the docs page, which describes
+mid-session switching applying from v2.1.251. The changelog points the **other way**:
+
+- v2.1.73 — `Deprecated /output-style command — use /config instead. Output style is now fixed at
+  session start for better prompt caching`
+- v2.1.238 — `Fixed custom, project, and plugin output styles drifting back to the default voice
+  mid-session`
+
+There is no v2.1.251 output-style entry; we read the whole section. We have not reconciled this and do
+not assert either version. Treat the output-style row in that table as the least reliable line in it.
+
+## 2c. Fable 5.1's cache-read rate does not match the rule of thumb
+
+v2.1.257 announces Claude Fable 5.1 at `$10/$50 per Mtok with $0.25/Mtok cache reads` — that is **2.5%
+of the input rate, not the ~10% this repo quotes as the general multiplier**. We verified the line
+verbatim. We cannot explain the deviation: it may be a per-model pricing decision, an introductory
+rate, or a changelog error. Track 06 §2 cites it and flags that per-model rates must be checked rather
+than assumed.
 
 ## 3. GitHub Copilot — no access on the research machine
 

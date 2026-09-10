@@ -47,6 +47,22 @@ The ordering detail is the load-bearing part. Deferral would be worthless if loa
 *reordered* the tool block — that would rewrite position 0, which is exactly what deferral exists to
 avoid. Keeping order stable and appending the expansion elsewhere is what makes it cache-neutral.
 
+**Shipping history**, from the changelog
+([fetched 2026-09-10](https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md)):
+
+| Version | Entry |
+|---|---|
+| [2.1.7](https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md?plain=1#L5098) | Default-on: `When MCP tool descriptions exceed 10% of the context window, they are automatically deferred and discovered via the MCPSearch tool instead of being loaded upfront` |
+| 2.1.9 | Threshold syntax `auto:N` |
+| 2.1.121 | Per-server opt-out via `alwaysLoad` |
+| 2.1.84 | `Global system-prompt caching now works when ToolSearch is enabled, including for users with MCP tools configured` |
+
+Two naming notes for anyone searching primary sources. The feature shipped as **`MCPSearch`** and was
+later renamed **`ToolSearch`** — the rename is never announced, it simply appears from v2.1.20 onward.
+And **the literal token `defer_loading` does not appear in the changelog at all**; it is API-level
+vocabulary from Anthropic's engineering blog, not a Claude Code configuration key. The user-facing
+control is `alwaysLoad` and the `auto:N` threshold.
+
 ### 2.2 The MCP consequence
 
 Whether an MCP change is free or catastrophic depends entirely on whether that server's tools are
@@ -124,9 +140,10 @@ comparison is not available. This is an asymmetry in disclosure, not necessarily
 ## 4. Practical guidance
 
 1. **Audit the MCP surface before blaming the model.** A dozen connected servers is a large fixed
-   token tax and a large invalidation surface. `claude_code.mcp.rpc` (verified present in v2.1.220) and
-   the `mcp_server.name` / `mcp_tool.name` attributes on `claude_code.token.usage` let you attribute
-   spend per server rather than guessing.
+   token tax and a large invalidation surface. The `mcp_server.name` / `mcp_tool.name` attributes on
+   `claude_code.token.usage` let you attribute spend per server rather than guessing. (A
+   `claude_code.mcp.rpc` metric would help too, but it is unconfirmed — see
+   [track 05 §1.1](05-telemetry.md) and [`../GAPS.md`](../GAPS.md) §1.)
 2. **Check whether deferral is actually on.** Behind a gateway it may silently not be — which converts
    every MCP reconnect into a full re-read. Track 02 §6.1.
 3. **Prefer scoped deny rules to bare ones.** `Bash(rm *)` is cache-neutral; `Bash` is not.

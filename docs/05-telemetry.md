@@ -41,11 +41,23 @@ Enabled with `CLAUDE_CODE_ENABLE_TELEMETRY=1`. Per
 | `claude_code.commit.count` / `pull_request.count` | — | |
 | `claude_code.code_edit_tool.decision` | — | Permission decisions |
 
-Additional metrics verified present in the v2.1.220 binary and **not** listed on that docs page:
-`claude_code.llm_request`, **`claude_code.compaction`** (attributes `trigger: auto|manual`,
-`message_count`), **`claude_code.mcp.rpc`**, `claude_code.subagent.spawn`, and
-`claude_code.tool.execution`. These map directly onto tracks 03 and 04 and are the most useful
-undocumented surface we found.
+**Metrics with changelog evidence but absent from that docs page.** `claude_code.llm_request` and
+`claude_code.active_time.total` shipped in
+[v2.1.139](https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md#21139),
+`claude_code.tool` spans in
+[v2.1.145](https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md#21145),
+and `claude_code.assistant_response` in
+[v2.1.193](https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md#21193).
+
+**Metrics with no public evidence at all — treat as unconfirmed.** `claude_code.compaction`,
+`claude_code.mcp.rpc`, `claude_code.subagent.spawn`, and `claude_code.tool.execution` appear **neither
+on the docs page nor anywhere in the changelog**. Our only basis for them is string inspection of the
+v2.1.220 binary, which establishes that the names exist in the shipped artifact — not that the metrics
+are emitted, nor what their attributes are. **Do not build a dashboard on these without confirming
+they emit in your own environment.** Downgraded accordingly in [`../GAPS.md`](../GAPS.md) §1.
+
+The same caveat applies wherever this repo cites `claude_code.compaction`'s `trigger` attribute
+(track 03 §2.6) or `claude_code.mcp.rpc` (track 04 §4).
 
 **Attributes** on the token metric: `type, model, query_source, speed, effort, agent.name, skill.name,
 plugin.name, marketplace.name, mcp_server.name, mcp_tool.name`. Two are worth calling out:

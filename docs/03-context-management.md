@@ -95,10 +95,19 @@ screenshot. Removed images are gone from Claude's view — they must be re-share
 
 ### 2.6 Observability
 
-Claude Code emits a dedicated **`claude_code.compaction`** metric carrying `trigger` (`auto` or
-`manual`) and `message_count` — verified present in v2.1.220. This is the cleanest available signal for
-answering "how much of my spend is compaction overhead," and it distinguishes user-initiated
-compaction from the automatic kind, which is the distinction that matters for tuning.
+A **`claude_code.compaction`** metric carrying `trigger` (`auto` or `manual`) and `message_count` would
+be the cleanest signal for "how much of my spend is compaction overhead," and would separate
+user-initiated from automatic compaction — the distinction that matters for tuning.
+
+⚠️ **Treat this as unconfirmed.** The name appears in string inspection of the v2.1.220 binary but
+**nowhere in Anthropic's documentation or in the changelog through v2.1.267**. That establishes the
+string exists in the artifact, not that the metric is emitted or that those are its attributes. Confirm
+against your own collector before relying on it. See [`../GAPS.md`](../GAPS.md) §1.
+
+What *is* evidenced: compaction's cache behaviour has been actively worked on. v2.1.70 —
+`Improved compaction to preserve images in the summarizer request, allowing prompt cache reuse for
+faster and cheaper compaction`
+([changelog](https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md#2170)).
 
 ## 3. Copilot: compaction as a re-routing boundary
 

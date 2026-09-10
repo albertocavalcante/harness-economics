@@ -119,10 +119,32 @@ Precedence, first match wins
 The asymmetry matters: **subagents get 5 minutes even on a subscription** unless you set the second
 bucket explicitly. A fan-out of subagents that idles briefly is re-reading cold.
 
-**Version floor, verified.** These settings require Claude Code **v2.1.242+**. We confirmed they are
-genuinely absent from the v2.1.220 binary — the setting is not merely undocumented there, it does not
-exist. Anyone reading a blog post that says "just set `promptCacheTtl`" on an older build will find
-nothing happens. See [`../GAPS.md`](../GAPS.md) §2.
+**Version floor — and the docs are off by one.** Anthropic's documentation says these settings require
+**v2.1.242**. The changelog says otherwise: they shipped in **v2.1.243**, and **there is no v2.1.242
+section in the changelog at all** — the file goes 2.1.241 → 2.1.243.
+
+> `Added promptCacheTtl and subagentPromptCacheTtl settings so API-key and cloud-provider users can
+> keep a 1-hour prompt cache on the main conversation while subagents stay at 5 minutes`
+> — [CHANGELOG v2.1.243, fetched 2026-09-10](https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md?plain=1#L656)
+
+We separately confirmed they are absent from the v2.1.220 binary — not merely undocumented there, but
+non-existent. Anyone following advice to "just set `promptCacheTtl`" on an older build will find
+nothing happens, with no error.
+
+The two environment variables are a weaker case: **neither `CLAUDE_CODE_PROMPT_CACHE_TTL` nor
+`CLAUDE_CODE_SUBAGENT_PROMPT_CACHE_TTL` appears anywhere in the changelog.** They are documented but
+were never announced, so we cite the docs page for their existence and the changelog only for the
+settings. See [`../GAPS.md`](../GAPS.md) §2.
+
+The older global flags have clean evidence — both landed together in **v2.1.108**:
+
+> `Added ENABLE_PROMPT_CACHING_1H env var to opt into 1-hour prompt cache TTL on API key, Bedrock,
+> Vertex, and Foundry (ENABLE_PROMPT_CACHING_1H_BEDROCK is deprecated but still honored), and
+> FORCE_PROMPT_CACHING_5M to force 5-minute TTL`
+> — [CHANGELOG v2.1.108, fetched 2026-09-10](https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md?plain=1#L3472)
+
+The per-agent override in the precedence table shipped in **v2.1.248**
+([changelog](https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md?plain=1#L499)).
 
 ### 3.2 Copilot's 24-hour retention
 
@@ -212,6 +234,34 @@ Reported cache hit rate on Copilot's Anthropic path for dense agentic turn seque
 no published Claude Code equivalent to compare against — Anthropic states it alerts on the metric but
 does not publish the number.
 
+### 5.1 The changelog is the best evidence that this is hard
+
+Reading the Claude Code changelog end to end (390 versions, through v2.1.267) turns up roughly **70
+entries that touch prompt caching** — and the large majority are not features. They are **fixes for
+cache-invalidation regressions**, shipped continuously across the entire 2.1 line.
+
+That pattern is the strongest available evidence for this repo's central claim: prefix stability is
+not a thing you design once. It is a property that decays, in a product whose vendor treats hit rate as
+a production SLO. A sample, each verbatim
+([CHANGELOG, fetched 2026-09-10](https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md)):
+
+| Version | Entry | What it tells you |
+|---|---|---|
+| 2.1.42 | `Improved prompt cache hit rates by moving date out of system prompt` | The textbook invalidator — a timestamp in the prefix — shipped in production |
+| 2.1.30 | `Fixed prompt cache not correctly invalidating when tool descriptions or input schemas changed, only when tool names changed` | Cache keys can be *too loose* as well as too tight |
+| 2.1.72 | `Fixed prompt cache invalidation in SDK query() calls, reducing input token costs up to 12x` | A single invalidation bug was a **12×** cost multiplier |
+| 2.1.89 | `Fixed prompt cache misses in long sessions caused by tool schema bytes changing mid-session` | Byte-level instability, invisible to the user |
+| 2.1.181 | `Fixed prompt caching not reading on custom ANTHROPIC_BASE_URL and on Foundry due to a per-request attestation token changing every turn` | The gateway trap in §6.1, confirmed as a real shipped defect |
+| 2.1.235 | `Fixed whole-prompt-cache invalidation when a language server disconnected or reconnected mid-session` | An LSP restart silently cost a full re-read |
+| 2.1.248 | `Fixed a prompt-cache miss … roughly once an hour in long sessions, caused by tool definitions being re-rendered after an OAuth token refresh` | An auth refresh — nothing to do with content — broke the prefix hourly |
+| 2.1.267 | `Fixed switching models with /model re-sending every tool definition (a prompt-cache miss)` | Still being fixed in the current release |
+
+Two conclusions follow. First, **the invalidation catalogue in §4.1 is a snapshot of a moving target** —
+several entries in it describe behaviour that was itself a bug at some point. Second, if a vendor with
+this much invested in caching ships this many prefix regressions, the correct posture for a user is to
+**measure your own hit rate rather than reason about it from documentation**. That is the argument for
+the harness in [`../measure/`](../measure/).
+
 ## 6. Cache scope
 
 **Claude Code** is effectively scoped to **one machine and one directory**, because the system prompt
@@ -240,13 +290,18 @@ verify `cache_read_input_tokens` is non-zero before trusting the setup.
 
 ## 7. Observing it
 
-| Surface | Claude Code | Copilot |
-|---|---|---|
-| Per-turn counters | `cache_read_input_tokens`, `cache_creation_input_tokens` | via OTel span attributes only |
-| In-product view | `/usage` → `Prompt cache (main)`: hit ratio, miss count, warm/cold (v2.1.251+) | none |
-| Miss cause attribution | `likely cause: tool definitions changed` (v2.1.260+) | none |
-| Live per-turn | statusline `prompt_cache` object | none |
-| Programmatic | `claude -p … --output-format json` → `usage.cache_creation.{ephemeral_5m,ephemeral_1h}_input_tokens` | OTLP collector required |
+| Surface | Claude Code | Shipped in | Copilot |
+|---|---|---|---|
+| Per-turn counters | `cache_read_input_tokens`, `cache_creation_input_tokens` | — | via OTel span attributes only |
+| In-product view | per-session prompt-cache line: hit ratio, misses, tokens re-cached, warm/cold | [v2.1.251](https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md?plain=1#L423) | none |
+| Miss cause attribution | `likely cause: …` (tool definitions or system prompt changed, idle past TTL) | [v2.1.260](https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md?plain=1#L193) | none |
+| Live per-turn | statusline `prompt_cache` object | v2.1.251 (same entry) | none |
+| Programmatic | `claude -p … --output-format json` → `usage.cache_creation.{ephemeral_5m,ephemeral_1h}_input_tokens` | — | OTLP collector required |
+
+**A naming discrepancy worth knowing.** Anthropic's docs describe this panel under `/usage`; the
+changelog entry that shipped it says `/cost`. Both are correct — `/cost` and `/stats` were merged into
+`/usage` as tabs in **v2.1.118**, with the old names retained as shortcuts that open the relevant tab.
+If you are searching the changelog for this feature, search `/cost`.
 
 **Field shape, verified 2026-09-10:** `usage.cache_creation` is an object with
 `ephemeral_5m_input_tokens` and `ephemeral_1h_input_tokens`, and these are **nullable**;

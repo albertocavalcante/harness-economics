@@ -55,6 +55,13 @@ Anthropic's from [prompt caching pricing, fetched 2026-09-10](https://platform.c
 Note the near-identity of the cached-read multiplier. **The pricing of caching is not where these
 products differ.** They differ in what they let you *do* about it and what they let you *see*.
 
+A concrete instance of the ratio, from a model launch entry rather than a pricing page — Claude Fable
+5.1 at **$10/$50 per Mtok with $0.25/Mtok cache reads**, i.e. cache reads at exactly 2.5% of the input
+rate on that model
+([CHANGELOG v2.1.257, fetched 2026-09-10](https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md#21257)).
+The "~10% of input" rule of thumb is a generalisation; **check the per-model rate**, because it varies
+more than the shorthand suggests.
+
 ### 2.1 The one Copilot exposes that Anthropic does not
 
 Copilot's table makes cache write a **model-dependent** property — older OpenAI models carry no cache
@@ -106,7 +113,13 @@ not publish cross-vendor token deltas. See [`../METHODOLOGY.md`](../METHODOLOGY.
 
 Claude Code's `--output-format json` reports `total_cost_usd`. Measurement runs in this repo use
 `--bare`, which strips hooks, LSP, plugin sync, auto-memory, and `CLAUDE.md` discovery for determinism —
-and which **forces `ANTHROPIC_API_KEY`**.
+and which **forces `ANTHROPIC_API_KEY`**. That is not an inference; it is what the flag was announced
+as doing:
+
+> `Added --bare flag for scripted -p calls — skips hooks, LSP, plugin sync, and skill directory walks;
+> requires ANTHROPIC_API_KEY or an apiKeyHelper via --settings (OAuth and keychain auth disabled);
+> auto-memory fully disabled`
+> — [CHANGELOG v2.1.81, fetched 2026-09-10](https://github.com/anthropics/claude-code/blob/9cdc2a4d946c586a8472e504fb20b3e79106518c/CHANGELOG.md?plain=1#L4038)
 
 That means the reported figure is an **API-key list-price cost**, not what a Pro or Max subscriber
 pays. The number is real, but it answers "what would this have cost at API rates," not "what did this
