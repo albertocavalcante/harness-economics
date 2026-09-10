@@ -83,7 +83,7 @@ same model, 150 requests.**
 > [!CAUTION]
 > **The BYOK and subscription request builders are different code paths with different cache behaviour
 > inside a single binary.** A "Copilot CLI v1.0.82" cost figure is *still* not a claim — you have to say
-> which auth mode. Roughly **$49 of avoidable spend in one session** turned on that distinction.
+> which auth mode. **$32.29 of avoidable spend in one session** turned on that distinction.
 
 Two more intra-CLI divergences worth knowing:
 

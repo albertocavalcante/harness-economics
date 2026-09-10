@@ -1,15 +1,13 @@
 ---
 name: harness-cost
 description: >-
-  Reduce token and dollar cost in agentic coding sessions across Claude Code and
-  GitHub Copilot. Use when a session costs far more than expected, when cache hit
-  rate is low or cache-read tokens read zero, when deciding where MCP servers,
-  tools, or skills should live so the cached prefix stays stable, when auditing
-  whether a cost meter can be trusted, or when the same workload costs different
-  amounts run to run. Covers prompt-cache prefix stability, TTL expiry, deferred
-  tool loading, and known meter defects per harness. For Claude Code auto-memory,
-  MEMORY.md, and CLAUDE.md hygiene use claude-code-optimize instead. For authoring
-  a SKILL.md against the open standard use agentskills-spec.
+  Cut token and dollar cost in Claude Code and GitHub Copilot (VS Code, Copilot
+  CLI) sessions. Use on a cost spike, a low cache hit rate, cache_read tokens
+  reading zero, credit/AIC burn, run-to-run cost variance, a cost meter you
+  cannot trust, or when placing MCP servers, tools, and skills so the cached
+  prefix stays stable. Covers prefix invalidation, the 5-minute TTL, and
+  deferred tool loading. For CLAUDE.md and MEMORY.md hygiene use
+  claude-code-optimize; to author a SKILL.md use agentskills-spec.
 license: CC0-1.0
 metadata:
   author: albertocavalcante
@@ -17,68 +15,80 @@ metadata:
   tags: cost, tokens, prompt-cache, claude-code, copilot, otel, billing
 ---
 
-# Harness cost — where the money actually goes
+# Harness cost
 
-Every rule here is backed by a dated, linked artifact in this repository. Claims
-without receipts have been deliberately left out.
+## The cost model
 
-## The model in one paragraph
+Every turn re-sends the whole conversation. You pay **0.1×** for prefix bytes the
+vendor serves from cache, and **1.0× plus a write surcharge** for the rest.
+Anthropic's write is 1.25× (5-minute TTL) or 2.0× (1-hour); Copilot's is disputed —
+see [`references/measuring.md`](references/measuring.md).
 
-An agent turn re-sends the entire conversation. You are not billed for what you
-typed; you are billed for **how much of the re-sent prefix the vendor could serve
-from cache**. A cache read costs ~0.1× input. A cache write costs 1.25× (5-minute
-TTL) or 2.0× (1-hour TTL). So the only question that matters is: **did the prefix
-match, byte for byte, from the start of the request to the cache breakpoint?**
+Optimise byte stability, not length. Ask one question per spike: **did the prefix
+match byte-for-byte up to the breakpoint?**
 
-Cost is therefore a property of **byte stability**, not of prompt length. A short
-prompt with an unstable prefix costs more than a long prompt with a stable one.
+## Diagnose a spike
 
-## Rule 1 — nothing mutating may sit ahead of a breakpoint
+Cheapest first — each step rules out a class.
 
-Render order is `tools` → `system` → `messages`. Anything that changes between
-turns invalidates everything after it.
+1. **Did the meter change?** Compare harness versions and auth mode between runs.
+   Never compare Copilot cost across VS Code 1.120, 1.121, 1.125, 1.128, 1.129,
+   1.131, 1.135, 1.137 — the meter changed at each.
+2. **Was there an idle gap over 5 minutes?** Check turn timestamps. This explains
+   most 10× spikes.
+3. **Did the request shape change?** Model, reasoning effort, mode, tool set, MCP
+   server added.
+4. **Did bytes move that you didn't move?** Diff two consecutive raw request
+   bodies. Definitive, and the only way to catch Rule 1.
+5. **Is compaction looping?** Look for consecutive compaction turns reclaiming ~0
+   tokens ([copilot-cli#4663][i4663] saw 38 in a row with no backoff). Restart the
+   session; it will not recover.
 
-**Disqualifying content, in priority order:** timestamps and dates · session or
+## Rule 1 — nothing mutating ahead of a breakpoint
+
+Render order is `tools` → `system` → `messages`. Anything that changes between turns
+invalidates everything after it.
+
+**Check the prefix for, in priority order:** timestamps and dates · session or
 request UUIDs · a directory tree · "files changed since last turn" · git status ·
 token or credit counters · anything derived from wall-clock time.
 
-Receipts — each of these shipped as a real defect:
+Receipts:
 
 | What moved | Cost |
 |---|---|
 | A rotating debug-log UUID inside the system block | **~95% of all cache-creation tokens** ([#323668][i323668]) |
 | A workspace tree at byte ~800 of a 669 KB body | `mkdir` at depth ≤2 cold-rewrote a **270K-token** prefix ([#323641][i323641]) |
-| The date, in Claude Code's system prompt | fixed in v2.1.42 — *"improved prompt cache hit rates by moving date out of system prompt"* |
+| The date, in Claude Code's system prompt | fixed in [v2.1.42][cc-changelog] |
 
-> Corollary: **your build can invalidate your cache.** A tool call that writes
-> `artifacts/` at the repo root changes the tree that was serialized ahead of the
-> prefix. This is structural, not TTL — in `#323641`, **94% of full rewrites
-> happened within five minutes of the prior turn.**
+**Act:** set `OTEL_LOG_RAW_API_BODIES=file:` to a path outside any repo, diff turn
+*N* against *N−1*, and move anything on that list below the last breakpoint — into
+the latest user message, never the system block.
+
+> **Your build can invalidate your cache.** Write build outputs to `/tmp` or to a
+> directory that already existed at session start; never create a top-level
+> directory mid-session. This is structural, not TTL — in `#323641`, **94% of full
+> rewrites happened within five minutes of the prior turn.**
 
 ## Rule 2 — do not change the request shape mid-session
 
-From [PR #323594][pr323594], verbatim:
+From [PR #323594][pr323594]:
 
 > *"The prompt cache is keyed on the request prefix, so changing the model,
 > reasoning effort, context size, mode, or enabled tool set between turns of the
 > same session invalidates the cache the previous turn warmed up."*
 
-So: pick the model **before** the expensive turns, not during. Enable the tools you
-need at the start. Do not flip modes casually — switching a Copilot session to
-autopilot mid-conversation measured `cached_tokens` **359,296 → 3,328** ([#334432][i334432]).
+Pick the model before the expensive turns. Enable the tools you need at the start.
+Switching a Copilot session to autopilot mid-conversation measured `cached_tokens`
+**359,296 → 3,328** ([#334432][i334432]).
 
-If you must switch, **start a new session instead of continuing** — you pay full
-input plus a full cache write either way, and a new session at least gets a clean
-prefix.
+If you must switch, start a new session rather than continue — you pay full input
+plus a full write either way; a new session at least starts clean.
 
-## Rule 3 — the five-minute cliff is a wall-clock race
+## Rule 3 — the 5-minute cliff is a wall-clock race
 
-The default TTL is 5 minutes from the **last** request. Any gap longer than that —
-a build, a test suite, a question you didn't answer — converts the whole prefix
-from 0.1× to 1.0×, **plus** a 1.25× write.
-
-Measured decay, the best public numbers either vendor has ([#3808][i3808], posted by
-a Microsoft engineer):
+The default TTL runs from the **last** request. Measured decay ([#3808][i3808],
+posted by a Microsoft engineer):
 
 | Idle gap | Requests that missed |
 |---|---|
@@ -86,122 +96,94 @@ a Microsoft engineer):
 | 300 s | 32% |
 | 330 s | **100%** |
 
-**What to do:** batch tool calls into one turn rather than trickling them. Answer
-prompts promptly or expect to pay. Do not walk away mid-session. If a long build is
-unavoidable, accept the miss and plan the next turn to be worth it.
+Batch tool calls into one turn rather than trickling them. Answer inside 4 minutes.
+If a long build is unavoidable, accept the miss.
 
-**What not to rely on:** Copilot's `longToolCallCachePreservation` keep-alive is
-scoped to `execution_subagent` calls only, **3 probes maximum, every 4 minutes**. It
-does not cover a long build in your main loop.
+Do not rely on Copilot's `longToolCallCachePreservation` keep-alive: it is scoped to
+`execution_subagent` calls, **3 probes maximum, every 4 minutes**. It does not cover
+a long build in your main loop.
 
 ## Rule 4 — always-loaded catalogs are the largest fixed cost
 
-Tools, MCP schemas, and **skill metadata** are rendered into the system prefix at
-session start and paid for on every turn whether or not you use them.
+Assume every installed tool, MCP schema, and skill description bills on **every**
+turn. Count them before optimising anything else.
 
 - Copilot CLI 1.0.80+ regressed MCP deferral: first-request tokens went
   **49,084 → 403,209**, and *"a fresh session with a simple 'hi' greeting costs more
   than 200 AIC"* ([#4613][i4613]).
-- Tool deferral is **server-gated per model** and only enabled for Claude, so `"hi"`
-  costs **21.6k** tokens on sonnet-4.6, **47.6k** on gpt-5.4, **61.9k** on grok-4.6
-  ([#4588][i4588]). The client cannot influence this.
+- Deferral is **server-gated per model**, enabled only for Claude: `"hi"` costs
+  **21.6k** tokens on sonnet-4.6, **47.6k** on gpt-5.4, **61.9k** on grok-4.6
+  ([#4588][i4588]).
 
-**Actions:** audit installed MCP servers and remove unused ones — this is usually the
-single biggest win available. Prefer deferred/searchable tool loading where the
-harness offers it. Keep skill descriptions short (see below).
+**Act:** audit installed MCP servers and remove unused ones — usually the single
+biggest win available. On Copilot, prefer a Claude model when tool count is high,
+since deferral is switched off for `gpt-*` and `grok-*`; otherwise cut the tool set.
 
-## Rule 5 — skills are prefix objects, so write them accordingly
+> [!WARNING]
+> **CLI 1.0.80 is both a fix and a regression.** It repairs the BYOK cache bug that
+> 1.0.82 carries ([#4720][i4720]) *and* ships the MCP-deferral regression above.
+> Pick your poison, or run subscription mode on 1.0.82.
 
-Every installed skill's `name` and `description` load into the system prompt at
-session start. The body loads only on activation. From [#328870][i328870] (open, no
-maintainer response):
+## Rule 5 — skills and instructions sit in the cached prefix
 
-> *"Every installed skill's `name` + `description` is injected into the model prompt
-> on **every** turn, regardless of whether any skill could apply."*
+Every installed skill's `name` and `description` render into the system prompt and
+bill on every turn ([#328870][i328870]). Bodies load on activation.
 
-Two enforced numbers worth knowing — they differ by an order of magnitude:
+| Harness | Observed limit |
+|---|---|
+| Claude Code | **1,536 chars** — `description` + `when_to_use`, truncated in the listing |
+| VS Code | **15,000 chars** — whole catalog, then degrades to a name list |
 
-| Harness | Limit | Behaviour past it |
-|---|---|---|
-| **Claude Code** | **1,536 chars** — `description` + `when_to_use` combined | truncated in the listing |
-| **VS Code** | **15,000 chars** — whole skill catalog | degrades to a bare name list, then `... and N more` |
+Budget ≤500 chars of `description`, and an uninvoked skill at ~100 tokens. Paths,
+frontmatter divergence, and the caveats on those numbers:
+[`references/copilot.md`](references/copilot.md).
 
-So: keep descriptions tight, keep the body under ~500 lines, and push encyclopedic
-detail into `references/` that loads on demand. **A skill that is never invoked should
-cost roughly 100 tokens, not 1,000.**
-
-> A `when`-gated skill becoming visible mid-conversation is a documented
-> cache-invalidation bug ([#315408][i315408]). Prefer unconditional skills.
-
-Per-harness install paths and frontmatter divergence: [`references/copilot.md`](references/copilot.md).
+> A `when`-gated skill becoming visible mid-conversation invalidated the prefix
+> ([#315408][i315408]) — **fixed in VS Code 1.123**. On older builds, prefer
+> unconditional skills.
 
 ## Rule 6 — verify the meter before trusting a number
 
-**The most expensive mistake is optimising against an instrument that is wrong.**
-Before publishing or acting on any cost figure, confirm the meter is sound for your
-harness, version, and auth mode. Full catalogue in
-[`references/measuring.md`](references/measuring.md); the two traps that bite hardest:
+Three checks before any figure counts: **(1)** harness version identical between
+runs; **(2)** auth mode identical; **(3)** `cache_read` non-zero on turn 2 of a warm
+session. Any "no" → diff raw bodies instead of reading counters.
+
+Two traps that bite hardest — full catalogue in
+[`references/measuring.md`](references/measuring.md):
 
 - **`input_tokens` means opposite things.** Copilot's **includes** cached tokens;
   Anthropic's **excludes** them. `input + cache_read` is correct arithmetic for one
   vendor and double-counting for the other.
 - **Zero is not evidence of zero.** Several Copilot paths hardcoded or never read
-  cache fields, so a broken meter reads as perfect frugality.
-
-## Diagnosing a spike
-
-Work in this order — it is cheapest-first, and each step rules out a whole class.
-
-1. **Did the meter change?** Compare harness versions between the two runs. Never
-   compare Copilot cost across VS Code versions; the meter changed at 1.120, 1.121,
-   1.125, 1.128, 1.129, 1.131, 1.135, and 1.137.
-2. **Was there an idle gap > 5 min?** Check turn timestamps. This explains most
-   10× spikes.
-3. **Did the shape change?** Model, effort, mode, tool set, MCP server added.
-4. **Did bytes move that you didn't move?** Diff two consecutive raw request bodies.
-   This is the only way to catch Rule 1 violations, and it is definitive.
-5. **Is compaction firing?** It is a paid, non-deterministic event that can loop.
+  cache fields.
 
 ## Instruments
 
 | Harness | Tool |
 |---|---|
 | Claude Code | `OTEL_LOG_RAW_API_BODIES` for raw bodies; `claude_code.token.usage{type=cacheRead\|cacheCreation}` |
-| Copilot | **Cache Explorer** in the chat debug panel — diffs the current request against the previous one |
-
-Every bug in Rule 1 is ultimately "bytes moved that shouldn't have." Both instruments
-show you which bytes. Use one, or measure nothing.
-
-## Anti-patterns
-
-- **Optimising prompt length.** Length is not the cost driver; prefix stability is.
-  A maintainer, on what dominates: *"The real killer tends to be output tokens."*
-- **Trusting a debug log as a billing oracle.** Copilot's `main.jsonl` logs cache
-  *reads* but not cache *writes*, so cost models built on it **structurally
-  underestimate** ([#329657][i329657]).
-- **Comparing raw token counts across vendors.** Different tokenizers. The only
-  defensible units are cost per verified-completed task and within-harness cache-read
-  ratio.
-- **Assuming a fix shipped because an issue is closed.** Several were closed by bot,
-  by "offline discussion", or by declaring the billing model obsolete.
+| Copilot | **Cache Explorer** in the chat debug panel — diffs the current request against the previous one ([PR #313620][pr313620], VS Code 1.119.0) |
 
 ## References
 
 - [`references/claude-code.md`](references/claude-code.md) — Claude Code levers and settings
 - [`references/copilot.md`](references/copilot.md) — Copilot by surface; skills paths; frontmatter divergence
 - [`references/measuring.md`](references/measuring.md) — which meter fields lie, and when
-- Full analysis: [`../../README.md`](../../README.md) · [track 02][t02] · [track 04][t04] · [known issues][ki]
+- Full analysis: [track 02][t02] · [track 04][t04] · [known issues][ki]
 
 [t02]: ../../docs/02-prompt-caching.md
 [t04]: ../../docs/04-tool-and-mcp-loading.md
 [ki]: ../../reference/KNOWN-ISSUES.md
+[cc-changelog]: https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md
 [i323668]: https://github.com/microsoft/vscode/issues/323668
 [i323641]: https://github.com/microsoft/vscode/issues/323641
 [i334432]: https://github.com/microsoft/vscode/issues/334432
 [i328870]: https://github.com/microsoft/vscode/issues/328870
 [i315408]: https://github.com/microsoft/vscode/issues/315408
-[i329657]: https://github.com/microsoft/vscode/issues/329657
 [i4613]: https://github.com/github/copilot-cli/issues/4613
 [i4588]: https://github.com/github/copilot-cli/issues/4588
+[i4663]: https://github.com/github/copilot-cli/issues/4663
+[i4720]: https://github.com/github/copilot-cli/issues/4720
 [i3808]: https://github.com/github/copilot-cli/issues/3808
 [pr323594]: https://github.com/microsoft/vscode/pull/323594
+[pr313620]: https://github.com/microsoft/vscode/pull/313620
