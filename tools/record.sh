@@ -10,8 +10,13 @@ if [ ! -f "$src" ]; then
   echo "✗ record: $src not found" >&2
   exit 1
 fi
-if ! jq -e 'has("schema_version") and has("timestamp_utc") and has("harness") and has("workload") and has("aggregates")' "$src" >/dev/null 2>&1; then
-  echo "✗ record: $src failed to parse or is missing a required key (schema_version, timestamp_utc, harness, workload, aggregates)" >&2
+# Real JSON-Schema validation, not the five-key `jq has()` check this used to be.
+if ! command -v uv >/dev/null 2>&1; then
+  echo "✗ record: uv not installed (brew install uv) — cannot validate" >&2
+  exit 1
+fi
+if ! uv run --locked python -m measure.lib.schema "$src"; then
+  echo "✗ record: $src does not match measurements/schema.json" >&2
   exit 1
 fi
 if grep -rInE "$LEAK_PATTERN" "$src"; then

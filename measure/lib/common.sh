@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
-# measure/lib/common.sh — shared shell helpers for every measurement script.
+# measure/lib/common.sh — shell helpers for the ONE remaining shell measurement
+# script, measure/fixture/make.sh. Everything else moved to measure/lib/*.py.
+#
+# Kept because the fixture generator was deliberately left in bash: it is 364
+# lines of deterministic generation driven by a pure-integer LCG, `--verify`
+# already covers it, and porting it would risk changing the fixture hash for no
+# gain. It uses exactly five helpers from this file: die, ok, ensure_staging,
+# require_free_space, sha256_of_stdin.
+#
+# Do NOT add callers. New measurement code belongs in the Python package, where
+# the schema, the shared formulas and the projection are tested. This file exists
+# to keep one working script working, not as a place to grow shell.
 #
 # Source this, don't execute it:
 #   source "$(dirname "${BASH_SOURCE[0]}")/../lib/common.sh"

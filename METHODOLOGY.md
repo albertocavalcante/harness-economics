@@ -67,10 +67,18 @@ reported:
 
 ### 3.3 Isolating one variable
 
-`ab.sh` runs the same task set under two configurations **interleaved ABAB, not AAABBB**, and reports
-the paired difference with a bootstrap interval. Interleaving is what protects against server-side
-cache drift and provider load varying over the run window; a blocked design would confound those with
-the variable under test.
+`measure/claude/ab.py` runs the same task set under two configurations **interleaved ABAB, not
+AAABBB**, and reports the paired difference with a bootstrap interval. Interleaving is what protects
+against server-side cache drift and provider load varying over the run window; a blocked design would
+confound those with the variable under test.
+
+**The bootstrap is seeded, and the seed is recorded in the measurement.** Any published interval can
+therefore be re-derived exactly by rerunning with the same `--seed` over the same differences. This
+was not true of the original shell implementation, which used `awk`'s bare `srand()` — drawn from
+wall-clock seconds, so intervals differed between runs and were coincidentally *identical* for two
+runs inside the same second. The second property is the more dangerous: a quick rerun could read as
+independent confirmation. Any interval this repo published before 2026-09-10 is not reproducible, and
+none were.
 
 ### 3.4 Determinism flags
 

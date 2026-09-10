@@ -81,21 +81,21 @@ measure-cache reps='5' mode='warm':
     #!/usr/bin/env bash
     set -euo pipefail
     just doctor
-    bash measure/claude/run.sh --task all --reps {{ reps }} --mode {{ mode }}
+    uv run --locked measure/claude/run.py --task all --reps {{ reps }} --mode {{ mode }}
 
 # A/B two claude configurations (model | mcp | system-prompt) on the same task, interleaved
 measure-ab var a b reps='5':
     #!/usr/bin/env bash
     set -euo pipefail
     just doctor
-    bash measure/claude/ab.sh --var '{{ var }}' --a '{{ a }}' --b '{{ b }}' --reps {{ reps }}
+    uv run --locked measure/claude/ab.py --var '{{ var }}' --a '{{ a }}' --b '{{ b }}' --reps {{ reps }}
 
 # Preset: measure-ab comparing an MCP server attached (mcp_config) vs not attached at all
 measure-mcp mcp_config reps='5':
     #!/usr/bin/env bash
     set -euo pipefail
     just doctor
-    bash measure/claude/ab.sh --var mcp --a none --b '{{ mcp_config }}' --reps {{ reps }}
+    uv run --locked measure/claude/ab.py --var mcp --a none --b '{{ mcp_config }}' --reps {{ reps }}
 
 # Validate FILE against the measurement schema and leak pattern, then promote it into measurements/
 record FILE:

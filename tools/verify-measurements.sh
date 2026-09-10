@@ -19,12 +19,18 @@ if [ "${#files[@]}" -eq 0 ]; then
   exit 0
 fi
 
-for f in "${files[@]}"; do
-  if ! jq -e 'has("schema_version") and has("timestamp_utc") and has("harness") and has("workload") and has("aggregates")' "$f" >/dev/null 2>&1; then
-    echo "✗ measurements: $f failed to parse or is missing a required key (schema_version, timestamp_utc, harness, workload, aggregates)" >&2
-    exit 1
-  fi
-done
+# Real JSON-Schema validation. This used to be a five-key `jq has()` check that
+# never opened schema.json — it passed records missing three required top-level
+# keys and every required aggregate, which is how a whole emitter shipped
+# schema-invalid without anyone noticing.
+if ! command -v uv >/dev/null 2>&1; then
+  echo "✗ measurements: uv not installed (brew install uv) — cannot validate" >&2
+  exit 1
+fi
+if ! uv run --locked python -m measure.lib.schema "${files[@]}"; then
+  echo "✗ measurements: schema validation failed above" >&2
+  exit 1
+fi
 
 if grep -rInE "$LEAK_PATTERN" "${files[@]}"; then
   echo "✗ measurements: personal path or credential-shaped string found above" >&2

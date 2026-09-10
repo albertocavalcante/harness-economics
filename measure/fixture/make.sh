@@ -22,7 +22,20 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck disable=SC1091 source=../lib/common.sh
 source "$REPO_ROOT/measure/lib/common.sh"
 
-FIXTURE_SEED=20260910 # fixed. Changing this changes filler bytes only —
+FIXTURE_SEED=20260910
+
+# The digest this generator is expected to produce, pinned in git.
+#
+# Without it, `--verify` only compares a regeneration against the FIXTURE.sha256
+# your own machine wrote a moment earlier — it proves the generator is
+# self-consistent, not that it produces the same tree anyone else gets. A
+# measurement is only comparable across machines if the input tree is identical,
+# so the expected value has to live in version control, not in $STAGING.
+#
+# If you deliberately change the generator, update this AND say so in
+# CHANGELOG.md: every measurement taken before the change was made against a
+# different corpus and is not comparable to ones taken after.
+FIXTURE_EXPECTED_SHA256=ae4539f6cdf061026b69d4daa8a05667af50e6c8f9a077e3d845d416ce1b1c2a # fixed. Changing this changes filler bytes only —
 # it does not touch any of the embedded facts below,
 # so task EXPECTED values never need to change.
 
@@ -340,11 +353,13 @@ main() {
     local fresh_hash
     fresh_hash="$(compute_fixture_hash "$VERIFY_TMP_DIR/fixture")"
 
-    if [ "$fresh_hash" = "$existing_hash" ]; then
-      ok "fixture" "hash matches"
-    else
+    if [ "$fresh_hash" != "$existing_hash" ]; then
       die "fixture" "hash mismatch: regenerated=$fresh_hash existing=$existing_hash"
     fi
+    if [ "$fresh_hash" != "$FIXTURE_EXPECTED_SHA256" ]; then
+      die "fixture" "hash $fresh_hash does not match the digest pinned in git ($FIXTURE_EXPECTED_SHA256) — this machine generates a different corpus, so its measurements are not comparable to anyone else's"
+    fi
+    ok "fixture" "hash matches, and matches the digest pinned in git"
     return 0
   fi
 
@@ -358,6 +373,9 @@ main() {
   size_kb="$(du -sk "$STAGING/fixture" | awk '{print $1}')"
   local file_count
   file_count="$(find "$STAGING/fixture" -type f ! -name 'FIXTURE.sha256' | wc -l | tr -d ' ')"
+  if [ "$hash" != "$FIXTURE_EXPECTED_SHA256" ]; then
+    die "fixture" "generated $hash but git pins $FIXTURE_EXPECTED_SHA256 — refusing to measure against a corpus nobody else has"
+  fi
   ok "fixture" "generated $file_count files (${size_kb}KB) at $STAGING/fixture — sha256 $hash"
 }
 

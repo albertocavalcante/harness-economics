@@ -419,7 +419,14 @@ If you are searching the changelog for this feature, search `/cost`.
 `ephemeral_5m_input_tokens` and `ephemeral_1h_input_tokens`, and these are **nullable**;
 `cache_creation_input_tokens` is derived as their sum and may be absent. Any script parsing this must
 handle null rather than assuming a number — ours does, in
-[`../measure/lib/emit.sh`](../measure/lib/emit.sh).
+[`../measure/lib/projection.py`](../measure/lib/projection.py), with all three observed shapes pinned
+as test cases.
+
+> [!NOTE]
+> Porting that projection from `jq` to Python surfaced a trap worth stating: **jq's `//` treats `0` as
+> truthy; Python's `or` treats it as falsy.** A naive `x or 0` would silently replace an explicit,
+> meaningful `cache_creation_input_tokens: 0` with the derived sum of the two ephemerals. Every
+> coercion is an explicit `is None` check.
 
 This repo's measurements of real hit rate under controlled conditions live in
 [`../measurements/`](../measurements/); the protocol is in [`../METHODOLOGY.md`](../METHODOLOGY.md).

@@ -14,7 +14,7 @@
     "workload",
     "aggregates"
   ],
-  "additionalProperties": true,
+  "additionalProperties": false,
   "properties": {
     "schema_version": {
       "type": "string",
@@ -70,7 +70,7 @@
           "valid",
           "priming"
         ],
-        "additionalProperties": true,
+        "additionalProperties": false,
         "properties": {
           "rep": {
             "type": "integer",
@@ -132,6 +132,14 @@
           "duration_ms": {
             "type": "number",
             "minimum": 0
+          },
+          "arm": {
+            "type": "string",
+            "enum": [
+              "A",
+              "B"
+            ],
+            "description": "Which A/B arm produced this rep. Absent on single-config runs."
           }
         }
       }
@@ -146,7 +154,7 @@
         "total_reps",
         "cache_attr_coverage"
       ],
-      "additionalProperties": true,
+      "additionalProperties": false,
       "properties": {
         "cache_read_share": {
           "type": [
@@ -188,14 +196,12 @@
           "minimum": 0
         },
         "mean_cache_creation_tokens": {
-          "minimum": 0,
           "type": [
             "number",
             "null"
           ]
         },
         "mean_output_tokens": {
-          "minimum": 0,
           "type": [
             "number",
             "null"
@@ -231,6 +237,53 @@
           ],
           "minimum": 0,
           "description": "Leaf model-call spans counted. Parent rollup spans are excluded -- summing parent and child double-counts (microsoft/vscode#331438)."
+        },
+        "paired_diff_metric": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Which per-rep metric the paired difference was taken over."
+        },
+        "paired_diff_n": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "paired_diff_mean": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Mean of B-A over pairs where BOTH arms answered correctly."
+        },
+        "paired_diff_ci95_low": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "paired_diff_ci95_high": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "bootstrap_seed": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Seed for the bootstrap resampler. Recorded so a reader can re-derive the interval; the shell original used awk's bare srand() and was not reproducible."
+        },
+        "bootstrap_resamples": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
         }
       }
     },
