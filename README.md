@@ -1,108 +1,74 @@
 # Harness Economics
 
-What agentic coding actually costs, and which architecture decisions drive it — a subsystem-by-subsystem
-teardown of **Claude Code** and **GitHub Copilot**, with sourced claims and a reproducible measurement
-harness.
+**What agentic coding actually costs, and which architecture decisions drive it.** A
+subsystem-by-subsystem teardown of **Claude Code** and **GitHub Copilot**, with every claim
+evidence-graded and a measurement harness you can run yourself.
 
-This is not a feature comparison. It follows a single question down through six layers of both
-products: when you send one message, what gets billed, and why? The answer turns out to be mostly about
-prompt caching — which is why both vendors reorganised their entire request architecture around it.
+**Compiled:** 2026-09-10 · ~21,400 words across 6 tracks · 137 inline citations · CC0
 
-**Compiled:** 2026-09-10 · ~20,600 words across 6 tracks · 137 inline citations · every claim
-evidence-graded A–E · measurement harness included
+> [!WARNING]
+> **No Copilot seat was available on the research machine, so every Copilot claim here is
+> documentation-derived rather than observed.** Claude Code claims include direct verification against a
+> local binary. This is the largest limitation of the current edition — stated here rather than buried.
+> Details and the path to closing it: [`GAPS.md` §3](GAPS.md).
 
 ---
 
-## Contents
+## The one idea everything else follows from
 
-- [Scope](#scope)
-- [At a glance](#at-a-glance)
-- [The tracks](#the-tracks)
-- [Evidence and timeline](TIMELINE.md)
-- [Where they actually differ](#where-they-actually-differ)
-- [Measure it yourself](#measure-it-yourself)
-- [Conventions](#conventions)
+A model remembers nothing between turns, so a harness re-sends the entire conversation on every
+request. Your bill is set by **what fraction of that payload can be served from cache** — and caching
+is a prefix match on exact bytes, so a change anywhere invalidates everything after it.
 
-## Scope
+```mermaid
+flowchart TD
+    A["1 · TOOLS — tool definitions<br/>changes on: MCP connect, plugin, deny rule"]
+    B["2 · SYSTEM — core instructions<br/>changes on: harness upgrade, output style"]
+    C["3 · PROJECT CONTEXT — CLAUDE.md, memory<br/>changes on: session start, /clear, /compact"]
+    D["4 · CONVERSATION — messages, tool results<br/>changes on: every turn, append-only"]
+    A --> B --> C --> D
+    A -. "a byte changed here<br/>invalidates all of this" .-> D
 
-An evidence-based teardown, not a link list. It answers three questions:
+    style A fill:#fde2e2,stroke:#c33
+    style B fill:#fdeee2,stroke:#c83
+    style C fill:#fdf9e2,stroke:#aa3
+    style D fill:#e6f5e6,stroke:#3a3
+```
 
-1. **What is in the request?** How each harness assembles the payload it sends on every turn, and which
-   structural decisions in that assembly determine cost.
-2. **What does it cost, really?** Cache read/write pricing, break-even arithmetic, and the 2026 shift
-   that made cache efficiency visible to Copilot buyers for the first time.
-3. **Can you see any of it?** What each product's telemetry exposes, what it hides, and what neither
-   will tell you.
+Volatility increases downward; blast radius decreases. **The cheapest place for changing content is the
+bottom, the most expensive is the top.** Both vendors reorganised their request architecture around
+that single fact — which is why this is a caching teardown rather than a feature comparison.
 
-Every capability claim carries a source URL and a fetch date. Every cost number is either cited or
-produced by the harness in [`measure/`](measure/) and recorded in [`measurements/`](measurements/).
-Anything that could not be verified is in [`GAPS.md`](GAPS.md) rather than estimated or omitted.
+## Start here
 
-**One limitation stated up front:** no Copilot seat was available on the research machine, so **every
-Copilot claim here is documentation-derived rather than observed.** The Claude Code claims include
-direct verification against a local binary. See [`GAPS.md`](GAPS.md) §3.
-
-**Out of scope:** code-completion quality, benchmark scores, IDE ergonomics, and any other harness
-(Codex, Cursor, Gemini CLI). Those are different questions and this repo does not pretend to answer them.
-
-## At a glance
-
-- **Cache hit rate is the only cost lever that matters at scale.** At ten turns over the same prefix, a
-  cached session costs ~21% of an uncached one. Everything else is a rounding error next to it.
-- **Both vendors price caching almost identically** — reads at ~10% of input rate, writes at a premium.
-  The products differ in *control* and *visibility*, not in price.
-- **"Copilot has no telemetry" is false.** Both ship OpenTelemetry. Copilot's tracing is arguably the
-  better design — GenAI semconv compliant, clean span hierarchy, subagent propagation.
-- **Only Claude Code will tell you why the cache missed.** `likely cause: tool definitions changed` has
-  no equivalent anywhere in Copilot, and it is the difference between a number and an action.
-- **Only Claude Code gives you cache controls.** TTL per request bucket, per-model disable, a debugging
-  override. Copilot exposes none.
-- **The claim we retracted:** we initially called Copilot's 24-hour OpenAI cache retention the biggest
-  lever either product ships. It rests on **one blog sentence with no release note behind it**. See
-  [`TIMELINE.md`](TIMELINE.md) §3 for how every claim here is evidence-graded.
-- **Copilot's answer to mid-session cache expiry exists but is invisible** — an experimental,
-  default-off keep-alive setting that shipped with no release-note coverage at all.
-- **Copilot has one idea worth stealing:** cache-aware model routing — switching models only at
-  boundaries where the prefix resets anyway.
-- **Claude Code's cache is per-machine and per-directory.** Two worktrees of the same repo never share
-  one. Most users do not know this.
-- **For chargeback, Copilot's per-user and per-token data cannot be joined.** For an organisation this
-  is a bigger practical difference than any caching detail.
-
-## The tracks
-
-| # | Document | Covers |
-|---|---|---|
-| 01 | [Request lifecycle](docs/01-request-lifecycle.md) | How each harness assembles a request; why position 0 is expensive |
-| 02 | [Prompt caching](docs/02-prompt-caching.md) | Prefix matching, breakpoints, TTL, the full invalidation catalogue, cache scope |
-| 03 | [Context management](docs/03-context-management.md) | Compaction cost, memory loading, `/rewind` vs `/compact`, image eviction |
-| 04 | [Tool and MCP loading](docs/04-tool-and-mcp-loading.md) | Deferred loading, tool search, the silent MCP reconnect problem |
-| 05 | [Telemetry](docs/05-telemetry.md) | OTel on both sides, miss-cause attribution, the chargeback join problem |
-| 06 | [Billing and cost anatomy](docs/06-billing-cost-anatomy.md) | Premium requests → AI credits, break-even math, structural incomparabilities |
-
-Cross-cutting conclusions are in [`SYNTHESIS.md`](SYNTHESIS.md). Method and its limits are in
-[`METHODOLOGY.md`](METHODOLOGY.md). What could not be determined is in [`GAPS.md`](GAPS.md).
+| If you want… | Go to |
+|---|---|
+| The short answer on **which is cheaper** | [`SYNTHESIS.md` §2](SYNTHESIS.md) |
+| To look up **a setting** | [`reference/SETTINGS.md`](reference/SETTINGS.md) |
+| To check **a known bug or its workaround** | [`reference/KNOWN-ISSUES.md`](reference/KNOWN-ISSUES.md) |
+| **When a feature shipped**, with a link | [`TIMELINE.md`](TIMELINE.md) |
+| The **full argument**, subsystem by subsystem | [the six tracks](#the-six-tracks) |
+| To **run the measurements** | [Measure it yourself](#measure-it-yourself) |
+| What we **could not determine** | [`GAPS.md`](GAPS.md) |
 
 > [!NOTE]
-> **"So which one is cheaper?"** — [`SYNTHESIS.md` §2](SYNTHESIS.md) answers that head-on. Short
-> version: **not yet answerable**, because no measurements have been taken and the biggest cost driver
-> (the vendor system prompt) is closed on Copilot's side. Exactly one directional claim survives the
-> evidence, and it is narrow. That section also lists what cuts the *other* way, because a comparison
-> that only finds fault with one side is advocacy.
+> **"So which one is cheaper?"** — [`SYNTHESIS.md` §2](SYNTHESIS.md) answers it head-on. Short version:
+> **not yet answerable.** No measurements have been taken, and the biggest cost driver — the vendor
+> system prompt — is closed on Copilot's side. Exactly one directional claim survives the evidence, and
+> it is narrow. That section also lists what cuts the *other* way, because a comparison that only finds
+> fault with one side is advocacy.
 
-**Quick references**, if you came here for a lookup rather than the argument:
+## Five findings
 
-| | |
+The full set of ten is in [`SYNTHESIS.md` §1](SYNTHESIS.md).
+
+| Finding | Why it matters |
 |---|---|
-| [`reference/SETTINGS.md`](reference/SETTINGS.md) | Every cache and telemetry setting in both harnesses — effect, default, version, evidence grade |
-| [`reference/KNOWN-ISSUES.md`](reference/KNOWN-ISSUES.md) | Open and closed defects, blast radius, workarounds, and which "closed" issues are unauditable |
-
-**[`TIMELINE.md`](TIMELINE.md) is where the evidence lives.** Every capability is anchored to the
-changelog entry or release note that shipped it, with an explicit **A–E grade** separating a versioned
-vendor changelog entry (A) from a merged PR that never got a release note (B), a maintainer's comment
-with no linked commit (C), a blog sentence with no shipping artifact (D), and an unreproduced user
-report (E). Two of this repo's own earlier claims were downgraded by that exercise, including one
-headline finding — the retraction is documented rather than quietly edited out.
+| **Cache hit rate is the only cost lever that matters at scale** | At ten turns over one prefix, a cached session costs **~21%** of an uncached one. Model and effort choice are rounding errors next to it |
+| **Both vendors price caching almost identically** | Reads ~10% of input, writes at a premium, on both. They differ in **control and visibility**, not price |
+| **"Copilot has no telemetry" is false** | Both ship OpenTelemetry. Copilot's *tracing* is arguably better designed — GenAI semconv, clean spans, subagent propagation |
+| **Only Claude Code tells you *why* the cache missed** | `likely cause: tool definitions changed`. The difference between a number and an action |
+| **Claude Code's cache is per-machine *and per-directory*** | Two worktrees of the same repo never share one. Most users do not know this |
 
 ## Where they actually differ
 
@@ -111,8 +77,8 @@ Neither product wins outright.
 | | Claude Code | Copilot |
 |---|---|---|
 | Cache read / write pricing | ~0.1× / 1.25×–2.0× | ~0.1× / +25% (free on older OpenAI models) |
-| Max cache retention | 1 hour, documented | 5m on the Anthropic path; a 24h OpenAI claim rests on [one blog sentence](TIMELINE.md) |
-| User-facing TTL control | ✅ per request bucket | ❌ none — one undocumented keep-alive setting |
+| Max cache retention | **1 hour**, documented | 5m on the Anthropic path; a 24h OpenAI claim rests on [one blog sentence](TIMELINE.md) |
+| User-facing TTL control | ✅ per request bucket | ❌ one undocumented keep-alive setting |
 | Miss-cause attribution | ✅ | ❌ |
 | Cost metric in USD | ✅ | ❌ credits, computed downstream |
 | OTel GenAI semconv | ❌ bespoke namespace | ✅ |
@@ -122,8 +88,37 @@ Neither product wins outright.
 | Invalidation semantics documented | ✅ exhaustively | ❌ |
 | Providers abstracted | 1 family | 6 |
 
-The full argument for each row is in the tracks. The short version: **Claude Code built the better cost
-instrumentation; Copilot built the better tracing model and solved a harder abstraction problem.**
+**The short version:** Claude Code built the better **cost instrumentation**; Copilot built the better
+**tracing model** and solved a harder abstraction problem — two incompatible caching paradigms behind
+one interface.
+
+## The six tracks
+
+| # | Document | Covers |
+|---|---|---|
+| 01 | [Request lifecycle](docs/01-request-lifecycle.md) | How each harness assembles a request; why position 0 is expensive |
+| 02 | [Prompt caching](docs/02-prompt-caching.md) | Prefix matching, breakpoints, TTL, the invalidation catalogue, cache scope |
+| 03 | [Context management](docs/03-context-management.md) | Compaction cost, memory loading, `/rewind` vs `/compact`, image eviction |
+| 04 | [Tool and MCP loading](docs/04-tool-and-mcp-loading.md) | Deferred loading, tool search, the silent MCP reconnect problem |
+| 05 | [Telemetry](docs/05-telemetry.md) | OTel on both sides, miss-cause attribution, the chargeback join problem |
+| 06 | [Billing and cost anatomy](docs/06-billing-cost-anatomy.md) | Premium requests → AI credits, break-even math, structural incomparabilities |
+
+## How claims are graded
+
+Every capability is anchored to a dated shipping artifact, not a docs page asserting "requires vX".
+
+| Grade | Means | Example |
+|:--:|---|---|
+| **A** | Vendor changelog entry or release note | `promptCacheTtl` in Claude Code v2.1.243 |
+| **B** | Merged PR, **never got a release note** | `longToolCallCachePreservation`, VS Code 1.123 |
+| **C** | Maintainer comment, no linked commit | `copilot-sdk#1073`'s fix — closed, unauditable |
+| **D** | Vendor blog only, no shipping artifact | `prompt_cache_retention: "24h"` |
+| **E** | User report, unreproduced | vscode#321551's cost multipliers |
+
+> [!IMPORTANT]
+> Applying that scale honestly **downgraded two of this repo's own claims**, including a headline
+> finding. The retractions are documented in [`GAPS.md` §7b](GAPS.md) rather than quietly edited out — a
+> teardown that never visibly corrects itself is not being checked.
 
 ## Measure it yourself
 
@@ -137,37 +132,31 @@ just measure-mcp     # what attaching an MCP server actually costs, A/B interlea
 just record FILE     # validate, leak-check, and promote a run into measurements/
 ```
 
-The workload is a **generated** synthetic codebase, pinned by hash — hermetic, no network, byte-identical
-on any machine. Tasks are read-only and **verified against an expected answer**, because an agent that
-gives up early produces a flatteringly low cost number and an unverified harness would average that in
-silently.
+The workload is a **generated** synthetic codebase pinned by hash — hermetic, no network,
+byte-identical on any machine. Tasks are read-only and **verified against an expected answer**, because
+an agent that gives up early produces a flatteringly low cost number and an unverified harness would
+average that in silently.
 
-Two things to know before reading any number the harness produces: runs use `--bare`, so reported cost
-is **API list price, not a subscription bill**; and the fixture is synthetic, so cross-run comparisons
-are valid while absolute figures are not a prediction for your codebase. Both are expanded in
-[`METHODOLOGY.md`](METHODOLOGY.md) §3.
+> [!CAUTION]
+> Two things to know before trusting any number the harness prints. Runs use `--bare`, which forces an
+> API key — so reported cost is **API list price, not a subscription bill**. And the fixture is
+> synthetic, so cross-run comparisons are valid while absolute figures are **not** a prediction for your
+> codebase. Both expanded in [`METHODOLOGY.md` §3](METHODOLOGY.md).
 
-The Copilot arm is **documented-manual** ([`measure/copilot/SETUP.md`](measure/copilot/SETUP.md)) rather
-than an automated recipe — it needs a paid seat and GUI configuration, and automating it would promise a
-reproducibility this environment cannot honour.
+The Copilot arm is [**documented-manual**](measure/copilot/SETUP.md), not an automated recipe — it needs
+a paid seat and GUI configuration, and automating it would promise a reproducibility this environment
+cannot honour.
 
 ## Conventions
 
-**Sources are mandatory.** Every capability claim carries a URL and a fetch date.
-
-**Measured or cited, never asserted.** A number is either backed by a citation or by a file in
-`measurements/`.
-
-**Vendor claims are labelled as vendor claims.** Where a figure comes from a vendor's own blog and could
-not be reproduced, the text says so at the point of use.
-
-**Negative findings are results.** "This cannot be measured, and here is why" belongs in `GAPS.md`, not
-in a silence.
-
-**Prices and products drift faster than research.** Both ship weekly. Treat any uncited number as
-suspect and re-fetch before relying on it.
-
-**No personal paths or credentials.** Enforced mechanically.
+| Rule | |
+|---|---|
+| **Sources are mandatory** | Every capability claim carries a URL and a fetch date |
+| **Measured or cited, never asserted** | A number is backed by a citation or a file in `measurements/` |
+| **Vendor claims are labelled as such** | Where a figure comes from a vendor blog and was not reproduced, the text says so at the point of use |
+| **Negative findings are results** | "This cannot be measured, and here is why" belongs in `GAPS.md`, not in a silence |
+| **Prices drift faster than research** | Both products ship weekly. Treat any uncited number as suspect and re-fetch |
+| **No personal paths or credentials** | Enforced mechanically by `just leaks` |
 
 ```sh
 just          # run all checks
@@ -175,8 +164,8 @@ just check    # leaks + links + sources + measurement validation
 just stats    # word and citation counts per document
 ```
 
-Local hooks are managed with [Lefthook](https://lefthook.dev); commit subjects follow
+Local hooks via [Lefthook](https://lefthook.dev); commits follow
 [Conventional Commits](https://www.conventionalcommits.org). See [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
-Licensed [CC0 1.0](LICENSE) — public domain. Corrections and reproductions are welcome, especially from
-anyone with a Copilot seat who can convert [`GAPS.md`](GAPS.md) §3 from documented to observed.
+Licensed [CC0 1.0](LICENSE) — public domain. **Corrections and reproductions are welcome**, especially
+from anyone with a Copilot seat who can convert [`GAPS.md` §3](GAPS.md) from documented to observed.
