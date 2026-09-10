@@ -44,12 +44,17 @@ die() {
 # the literal '[' that starts it.
 export LEAK_PATTERN='/Volumes/[A-Za-z0-9_-]+/|/Users/[a-z]|/home/[a-z]|ghp_[A-Za-z0-9]{20}|gho_[A-Za-z0-9]{20}|github[_]pat[_]|sk[-]ant[-]|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
 
-# md_files — every tracked Markdown file, one per line.
+# md_files — every Markdown file the repo will ship, one per line.
+#
+# Includes untracked-but-not-ignored files. A plain `git ls-files` covers only
+# tracked paths, so a brand-new document passed `refs` and `sources` vacuously
+# until the moment it was staged — a green check that proved nothing.
 md_files() {
-  git ls-files '*.md'
+  git ls-files --cached --others --exclude-standard '*.md'
 }
 
-# sh_files — every tracked shell script, one per line.
+# sh_files — every shell script the repo will ship, one per line.
+# Same untracked-inclusive rule as md_files, for the same reason.
 sh_files() {
-  git ls-files '*.sh'
+  git ls-files --cached --others --exclude-standard '*.sh'
 }
