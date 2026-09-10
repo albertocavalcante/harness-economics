@@ -8,7 +8,11 @@ check: leaks links sources verify-measurements
 leaks:
     #!/usr/bin/env bash
     set -euo pipefail
-    pattern='/Volumes/EXTERNAL|/Users/[a-z]|ghp_[A-Za-z0-9]{20}|gho_[A-Za-z0-9]{20}|github_pat_|sk-ant-|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
+    # Volume and home patterns are deliberately generic: they must catch any
+    # contributor's machine, not one author's. They are also written so this
+    # file does not match its own pattern -- a character class cannot match the
+    # literal '[' that starts it.
+    pattern='/Volumes/[A-Za-z0-9_-]+/|/Users/[a-z]|/home/[a-z]|ghp_[A-Za-z0-9]{20}|gho_[A-Za-z0-9]{20}|github[_]pat[_]|sk[-]ant[-]|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
     if grep -rInE "$pattern" --include='*.md' --include='*.json' --include='*.sh' . ; then
       echo "✗ leaks: personal path or credential-shaped string found above" >&2
       exit 1
@@ -73,7 +77,11 @@ verify-measurements:
         exit 1
       fi
     done
-    pattern='/Volumes/EXTERNAL|/Users/[a-z]|ghp_[A-Za-z0-9]{20}|gho_[A-Za-z0-9]{20}|github_pat_|sk-ant-|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
+    # Volume and home patterns are deliberately generic: they must catch any
+    # contributor's machine, not one author's. They are also written so this
+    # file does not match its own pattern -- a character class cannot match the
+    # literal '[' that starts it.
+    pattern='/Volumes/[A-Za-z0-9_-]+/|/Users/[a-z]|/home/[a-z]|ghp_[A-Za-z0-9]{20}|gho_[A-Za-z0-9]{20}|github[_]pat[_]|sk[-]ant[-]|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
     if grep -rInE "$pattern" "${files[@]}" ; then
       echo "✗ measurements: personal path or credential-shaped string found above" >&2
       exit 1
@@ -229,7 +237,11 @@ record FILE:
       echo "✗ record: $src failed to parse or is missing a required key (schema_version, timestamp_utc, harness, workload, aggregates)" >&2
       exit 1
     fi
-    pattern='/Volumes/EXTERNAL|/Users/[a-z]|ghp_[A-Za-z0-9]{20}|gho_[A-Za-z0-9]{20}|github_pat_|sk-ant-|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
+    # Volume and home patterns are deliberately generic: they must catch any
+    # contributor's machine, not one author's. They are also written so this
+    # file does not match its own pattern -- a character class cannot match the
+    # literal '[' that starts it.
+    pattern='/Volumes/[A-Za-z0-9_-]+/|/Users/[a-z]|/home/[a-z]|ghp_[A-Za-z0-9]{20}|gho_[A-Za-z0-9]{20}|github[_]pat[_]|sk[-]ant[-]|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
     if grep -rInE "$pattern" "$src"; then
       echo "✗ record: personal path or credential-shaped string found in $src" >&2
       exit 1
