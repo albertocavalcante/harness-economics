@@ -33,7 +33,7 @@ Claude Code's docs are explicit that this is by design: compaction "replaces you
 a summary… the next request has a new, shorter history that doesn't share a prefix with the old one"
 ([Claude Code prompt caching, fetched 2026-09-10](https://code.claude.com/docs/en/prompt-caching)).
 
-## 2. Claude Code
+## 2. Claude Code: summarising against its own cached prefix
 
 ### 2.1 The prefix-reuse trick
 
@@ -100,7 +100,7 @@ Claude Code emits a dedicated **`claude_code.compaction`** metric carrying `trig
 answering "how much of my spend is compaction overhead," and it distinguishes user-initiated
 compaction from the automatic kind, which is the distinction that matters for tuning.
 
-## 3. Copilot
+## 3. Copilot: compaction as a re-routing boundary
 
 GitHub documents that Copilot "compacts long-running sessions when needed," and that compaction "resets
 the prompt prefix"
@@ -147,3 +147,7 @@ See [`../GAPS.md`](../GAPS.md).
 - [Anthropic: Prompt caching is everything, fetched 2026-09-10](https://claude.com/blog/lessons-from-building-claude-code-prompt-caching-is-everything)
 - [Claude Code: monitoring usage, fetched 2026-09-10](https://code.claude.com/docs/en/monitoring-usage)
 - [GitHub: Getting more from each token, fetched 2026-09-10](https://github.blog/ai-and-ml/github-copilot/getting-more-from-each-token-how-copilot-improves-context-handling-and-model-routing/)
+
+---
+
+← [02 — Prompt caching](02-prompt-caching.md) · [Index](../README.md) · [04 — Tool and MCP loading](04-tool-and-mcp-loading.md) →

@@ -162,3 +162,7 @@ See [`../GAPS.md`](../GAPS.md).
 - [Anthropic pricing, fetched 2026-09-10](https://platform.claude.com/docs/en/about-claude/pricing)
 - [Claude Code: costs, fetched 2026-09-10](https://code.claude.com/docs/en/costs)
 - [Changelog: per-model token breakdown, fetched 2026-09-10](https://github.blog/changelog/2026-08-11-per-model-token-breakdown-in-the-usage-report/)
+
+---
+
+← [05 — Telemetry](05-telemetry.md) · [Index](../README.md) · [Synthesis](../SYNTHESIS.md) →

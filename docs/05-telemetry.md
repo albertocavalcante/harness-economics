@@ -24,7 +24,7 @@ false as of 2026. Copilot ships OTel in VS Code and an enterprise path, and by s
 
 ---
 
-## 1. Claude Code
+## 1. Claude Code: cost instrumentation in a bespoke namespace
 
 ### 1.1 Metrics
 
@@ -98,7 +98,7 @@ required. Recorded in [`../GAPS.md`](../GAPS.md) §1 rather than asserted either
 `_ENTRYPOINT` (false), `_RESOURCE_ATTRIBUTES` (true). Copilot exposes no equivalent, which matters at
 fleet scale where session-id cardinality is what makes a metrics bill explode.
 
-## 2. Copilot
+## 2. Copilot: GenAI semantic conventions, cleanly applied
 
 ### 2.1 VS Code
 
@@ -219,3 +219,7 @@ See [`../GAPS.md`](../GAPS.md).
 - [github/copilot-sdk#1073, fetched 2026-09-10](https://github.com/github/copilot-sdk/issues/1073)
 - [github/copilot-cli#3808, fetched 2026-09-10](https://github.com/github/copilot-cli/issues/3808)
 - [Elastic: Claude Code monitoring with OTel, fetched 2026-09-10](https://www.elastic.co/security-labs/blog/claude-code-cowork-monitoring-otel-elastic)
+
+---
+
+← [04 — Tool and MCP loading](04-tool-and-mcp-loading.md) · [Index](../README.md) · [06 — Billing and cost anatomy](06-billing-cost-anatomy.md) →

@@ -35,7 +35,7 @@ conversation.
 The second effect dominates. Token cost is linear in schema size; invalidation cost is proportional to
 the entire session length and is paid in full each time.
 
-## 2. Claude Code
+## 2. Claude Code: deferral, and what happens when it is unavailable
 
 ### 2.1 Deferred tool loading
 
@@ -90,7 +90,7 @@ the prefix untouched.
 A glob matching only MCP tools (`mcp__*`) removes those tools but leaves the cache intact **when they
 are deferred** — they were never in the cached prefix to begin with.
 
-## 3. Copilot
+## 3. Copilot: tool search, moved client-side
 
 Copilot's tool search solves the same problem with a different architecture, per
 [Improving token efficiency in GitHub Copilot, fetched 2026-09-10](https://code.visualstudio.com/blogs/2026/06/17/improving-token-efficiency-in-github-copilot):
@@ -152,3 +152,7 @@ See [`../GAPS.md`](../GAPS.md).
 - [VS Code: Improving token efficiency in GitHub Copilot, fetched 2026-09-10](https://code.visualstudio.com/blogs/2026/06/17/improving-token-efficiency-in-github-copilot)
 - [GitHub: Getting more from each token, fetched 2026-09-10](https://github.blog/ai-and-ml/github-copilot/getting-more-from-each-token-how-copilot-improves-context-handling-and-model-routing/)
 - [Anthropic: tool search tool, fetched 2026-09-10](https://platform.claude.com/docs/en/agents-and-tools/tool-use/tool-search-tool)
+
+---
+
+← [03 — Context management](03-context-management.md) · [Index](../README.md) · [05 — Telemetry](05-telemetry.md) →

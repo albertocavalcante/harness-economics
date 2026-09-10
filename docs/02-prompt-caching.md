@@ -184,7 +184,8 @@ that is already warm. When abandoning a line of work, rewinding is strictly chea
 
 GitHub does not publish an equivalent catalogue. What can be established from its own posts:
 
-- **Model switching invalidates**, which is why routing is constrained to cache boundaries (track 05).
+- **Model switching invalidates**, which is why routing is constrained to cache boundaries
+  ([track 03 §3](03-context-management.md)).
 - **Compaction resets the prefix** — explicitly described as a boundary where re-routing is safe.
 - **Deferred tools do not invalidate**, because they are appended rather than placed in the prefix.
 
@@ -275,3 +276,7 @@ Recorded in full in [`../GAPS.md`](../GAPS.md); the caching-specific items:
 - [Models and pricing for GitHub Copilot, fetched 2026-09-10](https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing)
 - [microsoft/vscode#321551 — cache expires mid-session, fetched 2026-09-10](https://github.com/microsoft/vscode/issues/321551)
 - [GitHub: Getting more from each token, fetched 2026-09-10](https://github.blog/ai-and-ml/github-copilot/getting-more-from-each-token-how-copilot-improves-context-handling-and-model-routing/)
+
+---
+
+← [01 — Request lifecycle](01-request-lifecycle.md) · [Index](../README.md) · [03 — Context management](03-context-management.md) →

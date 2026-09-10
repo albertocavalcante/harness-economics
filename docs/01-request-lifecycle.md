@@ -131,20 +131,21 @@ too low." Cache hit rate is treated as a production SLO, not a metric.
 **Copilot optimises breadth across six.** It cannot assume a cache contract, so it invests in things
 that work regardless of provider: deferring tool schemas so they never enter the prefix, compacting at
 points where the prefix resets anyway, and — the genuinely novel one — **routing models only at cache
-boundaries** (track 05 §3). That last idea has no Claude Code equivalent.
+boundaries** ([track 03 §3](03-context-management.md)). That last idea has no Claude Code equivalent.
 
-## 5. What this means for the bill
+## 5. What carries forward
 
-Three consequences carry into the later tracks:
+Three structural consequences, each picked up by a later track:
 
 1. **Position 0 is the most expensive real estate in the request.** Tool definitions render first, so
    an MCP server that injects large schemas costs more than its token count suggests — it sits ahead of
-   everything and invalidates all of it when it changes. Track 04.
-2. **Anything that mutates rather than appends is a full re-read.** Track 02 catalogues exactly which
-   actions do this in each harness.
+   everything and invalidates all of it when it changes.
+   → [Track 04](04-tool-and-mcp-loading.md)
+2. **Anything that mutates rather than appends is a full re-read.** Which actions do this, in each
+   harness, is catalogued in → [Track 02](02-prompt-caching.md)
 3. **The unit of cost is the session, not the turn.** A cheap-looking turn deep in an expensive session
-   is still reading a large prefix; it is just reading it at the cached rate. Track 06 builds the
-   arithmetic.
+   is still reading a large prefix; it is just reading it at the cached rate.
+   → [Track 06](06-billing-cost-anatomy.md)
 
 ## Sources
 
@@ -154,3 +155,7 @@ Three consequences carry into the later tracks:
 - [Agent SDK: modifying system prompts, fetched 2026-09-10](https://code.claude.com/docs/en/agent-sdk/modifying-system-prompts)
 - [GitHub: Getting more from each token, fetched 2026-09-10](https://github.blog/ai-and-ml/github-copilot/getting-more-from-each-token-how-copilot-improves-context-handling-and-model-routing/)
 - [VS Code: Improving token efficiency in GitHub Copilot, fetched 2026-09-10](https://code.visualstudio.com/blogs/2026/06/17/improving-token-efficiency-in-github-copilot)
+
+---
+
+[Index](../README.md) · [02 — Prompt caching](02-prompt-caching.md) →
