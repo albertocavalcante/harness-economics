@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340" width="760" height="340"
+     font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" role="img"
+     aria-label="Bar chart of how much of a cached prefix is rewritten after an idle gap. At 240 seconds
+     3.5 percent is rewritten, at 270 seconds 11.6 percent, at 300 seconds 32 percent, and at 330 seconds
+     and beyond 100 percent. The loss is negligible until about four minutes, then collapses within
+     ninety seconds.">
+  <title>The TTL cliff, measured</title>
+  <rect width="760" height="340" fill="#ffffff"/>
+
+  <text x="24" y="30" font-size="15" font-weight="700" fill="#111827">The 5-minute TTL is a cliff, not a slope</text>
+  <text x="24" y="50" font-size="12" fill="#4b5563">Share of the cached prefix rewritten after an idle gap — production data, Copilot CLI issue #3808.</text>
+
+  <!-- axes -->
+  <line x1="96" y1="264" x2="712" y2="264" stroke="#6b7280"/>
+  <line x1="96" y1="80" x2="96" y2="264" stroke="#6b7280"/>
+  <text x="88" y="86" font-size="10.5" text-anchor="end" fill="#6b7280">100%</text>
+  <text x="88" y="176" font-size="10.5" text-anchor="end" fill="#6b7280">50%</text>
+  <text x="88" y="268" font-size="10.5" text-anchor="end" fill="#6b7280">0%</text>
+  <line x1="96" y1="82" x2="712" y2="82" stroke="#e5e7eb" stroke-dasharray="3 3"/>
+  <line x1="96" y1="173" x2="712" y2="173" stroke="#e5e7eb" stroke-dasharray="3 3"/>
+
+  <!-- 240s : 3.5% -->
+  <rect x="132" y="257" width="72" height="7" fill="#bbf7d0" stroke="#16a34a"/>
+  <text x="168" y="250" font-size="11" text-anchor="middle" font-weight="600" fill="#14532d">3.5%</text>
+  <text x="168" y="284" font-size="11.5" text-anchor="middle" fill="#374151">240 s</text>
+  <text x="168" y="299" font-size="10" text-anchor="middle" fill="#6b7280">4 min</text>
+
+  <!-- 270s : 11.6% -->
+  <rect x="252" y="243" width="72" height="21" fill="#bbf7d0" stroke="#16a34a"/>
+  <text x="288" y="236" font-size="11" text-anchor="middle" font-weight="600" fill="#14532d">11.6%</text>
+  <text x="288" y="284" font-size="11.5" text-anchor="middle" fill="#374151">270 s</text>
+
+  <!-- 300s : 32% -->
+  <rect x="372" y="205" width="72" height="59" fill="#fed7aa" stroke="#ea580c"/>
+  <text x="408" y="198" font-size="11" text-anchor="middle" font-weight="600" fill="#7c2d12">32.0%</text>
+  <text x="408" y="284" font-size="11.5" text-anchor="middle" font-weight="600" fill="#374151">300 s</text>
+  <text x="408" y="299" font-size="10" text-anchor="middle" fill="#6b7280">5 min — the nominal TTL</text>
+
+  <!-- 330s : 100% -->
+  <rect x="492" y="82" width="72" height="182" fill="#fecaca" stroke="#dc2626"/>
+  <text x="528" y="75" font-size="11" text-anchor="middle" font-weight="600" fill="#7f1d1d">100%</text>
+  <text x="528" y="284" font-size="11.5" text-anchor="middle" fill="#374151">330 s</text>
+  <text x="528" y="299" font-size="10" text-anchor="middle" fill="#6b7280">5½ min</text>
+
+  <!-- 420s : 100% -->
+  <rect x="612" y="82" width="72" height="182" fill="#fecaca" stroke="#dc2626"/>
+  <text x="648" y="75" font-size="11" text-anchor="middle" font-weight="600" fill="#7f1d1d">100%</text>
+  <text x="648" y="284" font-size="11.5" text-anchor="middle" fill="#374151">420 s</text>
+
+  <text x="24" y="326" font-size="11.5" fill="#4b5563">Nothing much happens for four minutes, then the whole prefix is gone within ninety seconds. <tspan font-weight="600" fill="#111827">A tool call that runs slightly long costs the entire cache.</tspan></text>
+</svg>

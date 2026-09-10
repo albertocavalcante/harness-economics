@@ -79,6 +79,11 @@ cached, 5m TTL:  P · 1.25  +  (N−1) · P · 0.1
 cached, 1h TTL:  P · 2.00  +  (N−1) · P · 0.1
 ```
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/break-even-dark.svg">
+  <img alt="Line chart of cumulative cost against turns. Uncached rises linearly to 10 units at ten turns. Cached at five-minute TTL starts at 1.25, crosses below uncached during turn two, and reaches only 2.15 at ten turns. Cached at one-hour TTL starts at 2.0 and crosses during turn three." src="../assets/break-even.svg" width="760">
+</picture>
+
 | Turns over the prefix | Uncached | 5m TTL | 1h TTL |
 |---:|---:|---:|---:|
 | 1 | 1.00 | 1.25 | 2.00 |

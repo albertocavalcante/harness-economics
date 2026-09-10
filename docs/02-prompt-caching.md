@@ -111,6 +111,11 @@ the tools-array bytes identical across turns."
 | Implicit | pre-5.6 and 5.6+ | inferred; rounds down to a multiple of 128 | **free** pre-5.6 | 0.1× |
 | **Explicit** | **GPT-5.6+** | caller-placed, **max 4** | **1.25×** | 0.1× |
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/caching-paradigms-dark.svg">
+  <img alt="Comparison of three caching designs. Anthropic and OpenAI both use caller-placed breakpoints with a four-write budget and 1.25 times write, 0.1 times read pricing. Google Gemini instead creates a cached-content resource with full lifecycle operations, an unbounded TTL, and prices storage per hour as a third axis." src="../assets/caching-paradigms.svg" width="760">
+</picture>
+
 Minimum cacheable prefix is 1,024 tokens on both modes. TTL on 5.6+ is `30m` — **the only supported
 value**, and the default. Pre-5.6 implicit caching used `prompt_cache_retention` with `in_memory`
 (5–10 min, up to 1 hour) or `24h`, which is where this repo's grade-D 24-hour claim originates.
@@ -218,6 +223,11 @@ The reporter's cost figures (3–5× on the affected turn, 8–15× cumulative) 
 unreproduced, graded E. But the *mechanism* is now independently quantified. On
 [copilot-cli#3808](https://github.com/github/copilot-cli/issues/3808), 2026-08-10, production session
 data binned by idle gap:
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/ttl-decay-cliff-dark.svg">
+  <img alt="Bar chart: 3.5 percent of the prefix rewritten after a 240 second idle gap, 11.6 percent at 270 seconds, 32 percent at 300 seconds, and 100 percent at 330 seconds and beyond." src="../assets/ttl-decay-cliff.svg" width="760">
+</picture>
 
 | Idle gap | Prefix rewritten |
 |---|---|

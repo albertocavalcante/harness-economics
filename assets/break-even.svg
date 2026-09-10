@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" width="760" height="360"
+     font-family="ui-sans-serif, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" role="img"
+     aria-label="Line chart of cumulative cost against number of turns over one prefix. Uncached cost
+     rises linearly to 10 units at ten turns. Cached cost at five-minute TTL starts higher at 1.25 units
+     because the write carries a premium, crosses below uncached during turn two, and reaches only 2.15
+     units at ten turns. Cached cost at one-hour TTL starts at 2.0 and crosses during turn three.">
+  <title>Cache break-even</title>
+  <rect width="760" height="360" fill="#ffffff"/>
+
+  <text x="24" y="30" font-size="15" font-weight="700" fill="#111827">Caching is a loan: you pay the write up front</text>
+  <text x="24" y="50" font-size="12" fill="#4b5563">Cumulative cost in units of one uncached prefix. Write 1.25× at 5m TTL, 2.0× at 1h; reads 0.1×.</text>
+
+  <!-- axes -->
+  <line x1="80" y1="290" x2="700" y2="290" stroke="#6b7280"/>
+  <line x1="80" y1="76" x2="80" y2="290" stroke="#6b7280"/>
+  <text x="72" y="82" font-size="10.5" text-anchor="end" fill="#6b7280">10×</text>
+  <text x="72" y="188" font-size="10.5" text-anchor="end" fill="#6b7280">5×</text>
+  <text x="72" y="294" font-size="10.5" text-anchor="end" fill="#6b7280">0</text>
+  <line x1="80" y1="82" x2="700" y2="82" stroke="#e5e7eb" stroke-dasharray="3 3"/>
+  <line x1="80" y1="186" x2="700" y2="186" stroke="#e5e7eb" stroke-dasharray="3 3"/>
+
+  <!-- x ticks : turns 1..10 mapped x = 80 + turn*62 -->
+  <text x="142" y="310" font-size="10.5" text-anchor="middle" fill="#6b7280">1</text>
+  <text x="204" y="310" font-size="10.5" text-anchor="middle" font-weight="600" fill="#374151">2</text>
+  <text x="266" y="310" font-size="10.5" text-anchor="middle" fill="#6b7280">3</text>
+  <text x="390" y="310" font-size="10.5" text-anchor="middle" fill="#6b7280">5</text>
+  <text x="638" y="310" font-size="10.5" text-anchor="middle" fill="#6b7280">10</text>
+  <text x="390" y="330" font-size="11.5" text-anchor="middle" fill="#4b5563">turns over the same prefix</text>
+
+  <!-- uncached : y = 290 - turn*20.8 -->
+  <polyline fill="none" stroke="#dc2626" stroke-width="2.5"
+    points="142,269 204,248 266,228 328,207 390,186 452,165 514,145 576,124 638,82"/>
+  <circle cx="638" cy="82" r="4" fill="#fecaca" stroke="#dc2626" stroke-width="2"/>
+  <text x="650" y="86" font-size="11.5" font-weight="600" fill="#7f1d1d">uncached</text>
+  <text x="650" y="100" font-size="10.5" fill="#6b7280">10.0×</text>
+
+  <!-- cached 5m : 1.25 then +0.1 -> y = 290 - v*20.8 -->
+  <polyline fill="none" stroke="#16a34a" stroke-width="2.5"
+    points="142,264 204,262 266,260 328,258 390,256 452,254 514,251 576,249 638,245"/>
+  <circle cx="638" cy="245" r="4" fill="#bbf7d0" stroke="#16a34a" stroke-width="2"/>
+  <text x="650" y="243" font-size="11.5" font-weight="600" fill="#14532d">cached, 5m</text>
+  <text x="650" y="257" font-size="10.5" fill="#6b7280">2.15× — 21% of uncached</text>
+
+  <!-- cached 1h : 2.0 then +0.1 -->
+  <polyline fill="none" stroke="#ea580c" stroke-width="2.5" stroke-dasharray="5 3"
+    points="142,248 204,246 266,244 328,242 390,240 452,238 514,236 576,234 638,230"/>
+  <circle cx="638" cy="230" r="4" fill="#fed7aa" stroke="#ea580c" stroke-width="2"/>
+  <text x="650" y="215" font-size="11.5" font-weight="600" fill="#7c2d12">cached, 1h</text>
+  <text x="650" y="229" font-size="10.5" fill="#6b7280">2.90×</text>
+
+  <!-- break-even markers -->
+  <line x1="204" y1="76" x2="204" y2="290" stroke="#16a34a" stroke-dasharray="4 3" opacity="0.7"/>
+  <text x="210" y="120" font-size="11" font-weight="600" fill="#14532d">5m TTL pays back here</text>
+  <line x1="266" y1="76" x2="266" y2="290" stroke="#ea580c" stroke-dasharray="4 3" opacity="0.55"/>
+  <text x="272" y="140" font-size="11" font-weight="600" fill="#7c2d12">1h TTL pays back here</text>
+
+  <text x="24" y="352" font-size="11.5" fill="#4b5563">The 1-hour TTL doubles the write. It is a bet on idle gaps — <tspan font-weight="600" fill="#111827">on bursty work that never idles past five minutes, it is a straight loss.</tspan></text>
+</svg>

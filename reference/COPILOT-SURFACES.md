@@ -31,6 +31,11 @@ auditable**.
 
 This is the table that matters. Same product name, three months apart.
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="../assets/copilot-surfaces-timeline-dark.svg">
+  <img alt="Timeline across 2026 with two lanes. The VS Code extension gained cache_control breakpoints in April; the Copilot CLI gained them in August, about three months later. Telemetry ran the other way, with the CLI showing cache-write tokens twelve weeks before the extension." src="../assets/copilot-surfaces-timeline.svg" width="760">
+</picture>
+
 | Capability | VS Code extension | Copilot CLI |
 |---|---|---|
 | `cache_control` breakpoints on Claude | **1.118** — 2026-04-29 | **v1.0.78** — 2026-08-03 |
