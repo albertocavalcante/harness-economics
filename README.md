@@ -72,25 +72,49 @@ The full set of ten is in [`SYNTHESIS.md` §1](SYNTHESIS.md).
 
 ## Where they actually differ
 
-Neither product wins outright.
+Neither product wins outright: **Claude Code leads 5 of 8 capabilities, Copilot 3** — and they lead on
+different *kinds* of thing, which matters more than the tally.
+
+### Observability — a split decision
+
+| Capability | Claude Code | Copilot |
+|---|---|---|
+| Tells you **why** the cache missed | ✅ | ❌ |
+| Cost metric denominated in **USD** | ✅ | ❌ credits, computed downstream |
+| Per-user **and** per-token attribution joinable | ✅ same data point | ❌ two systems, no common key |
+| OTel **GenAI semantic conventions** | ❌ bespoke namespace | ✅ |
+| Trace hierarchy + subagent propagation | ⚠️ beta | ✅ |
+
+**Claude Code owns cost instrumentation; Copilot owns standards-compliant tracing.** Standardising
+dashboards across many tools? Copilot's shape fits better. Working out why a bill is high? Only Claude
+Code will tell you.
+
+### Cache control — Claude Code, with one exception
+
+| Capability | Claude Code | Copilot |
+|---|---|---|
+| User-facing TTL control | ✅ per request bucket | ❌ one undocumented keep-alive setting |
+| Invalidation semantics documented | ✅ exhaustively | ❌ |
+| **Cache-aware model routing** | ❌ | ✅ |
+
+That last row is the idea in this teardown most worth copying: Copilot re-routes models **only at
+boundaries where the prefix resets anyway** — turn one, and after compaction. Claude Code merely warns
+you and lets you absorb the miss.
+
+### The numbers — not a scoreboard
+
+Values, not wins. Forcing these into ✅/❌ is what made the original single table unreadable.
 
 | | Claude Code | Copilot |
 |---|---|---|
 | Cache read / write pricing | ~0.1× / 1.25×–2.0× | ~0.1× / +25% (free on older OpenAI models) |
 | Max cache retention | **1 hour**, documented | 5m on the Anthropic path; a 24h OpenAI claim rests on [one blog sentence](TIMELINE.md) |
-| User-facing TTL control | ✅ per request bucket | ❌ one undocumented keep-alive setting |
-| Miss-cause attribution | ✅ | ❌ |
-| Cost metric in USD | ✅ | ❌ credits, computed downstream |
-| OTel GenAI semconv | ❌ bespoke namespace | ✅ |
-| Trace hierarchy + subagent propagation | ⚠️ beta | ✅ |
-| Cache-aware model routing | ❌ | ✅ |
-| Per-user + per-token attribution joinable | ✅ same data point | ❌ two systems, no common key |
-| Invalidation semantics documented | ✅ exhaustively | ❌ |
-| Providers abstracted | 1 family | 6 |
+| Providers abstracted | 1 family | **6** |
 
-**The short version:** Claude Code built the better **cost instrumentation**; Copilot built the better
-**tracing model** and solved a harder abstraction problem — two incompatible caching paradigms behind
-one interface.
+That last row excuses much of the rest. **Copilot solved a harder problem** — two incompatible caching
+paradigms behind one interface — and paid for it in the controls it can expose.
+
+The full argument for every row is in [the six tracks](#the-six-tracks).
 
 ## The six tracks
 
@@ -160,9 +184,15 @@ cannot honour.
 
 ```sh
 just          # run all checks
-just check    # leaks + links + sources + measurement validation
+just check    # leaks + links + sources + measurements + lint + fmt-check
+just lint     # shellcheck every shell script
+just fmt      # shfmt every shell script in place
 just stats    # word and citation counts per document
 ```
+
+> [!NOTE]
+> These gates run locally via Lefthook, **not** in CI. A pull request from a fork will not run them —
+> run `just check` before opening one, and expect a maintainer to run it on your branch.
 
 Local hooks via [Lefthook](https://lefthook.dev); commits follow
 [Conventional Commits](https://www.conventionalcommits.org). See [`CONTRIBUTING.md`](CONTRIBUTING.md).
