@@ -64,7 +64,7 @@ introduction; the `cacheRead`/`cacheCreation` `type` values; and all four of
 | 2026-06-17 | — | Two blog posts: VS Code token efficiency, GitHub "Getting more from each token" | blogs |
 | **2026-06-23** | **CLI v1.0.64** | **`gen_ai.usage.cache_read.input_tokens` / `cache_creation.input_tokens` emitted** (previously wrong names) | CLI changelog |
 | 2026-07-08 | VS Code 1.128 | Enterprise-managed OTel export | [changelog](https://github.blog/changelog/2026-07-08-enterprise-managed-opentelemetry-export-for-vs-code-and-cli/) |
-| 2026-08-03 | CLI v1.0.78 | `cache_control` breakpoints confirmed default-on for Claude | [#4256 comment](https://github.com/github/copilot-cli/issues/4256#issuecomment-5228950771) |
+| 2026-08-03 | CLI v1.0.78 | `cache_control` breakpoints confirmed default-on for Claude — **grade D: the source is a bot comment**, see §3 | [#4256 comment](https://github.com/github/copilot-cli/issues/4256#issuecomment-5228950771) |
 | **2026-08-11** | — | **Per-model input/output/cache-read/cache-write breakdown in the usage report** | [changelog](https://github.blog/changelog/2026-08-11-per-model-token-breakdown-in-the-usage-report/) |
 | 2026-08-26 | VS Code 1.135 | Per-model input / cached-input / output breakdown in the chat footer | [notes](https://code.visualstudio.com/updates/v1_135) |
 
@@ -133,9 +133,29 @@ available in the next release"* — with **no linked PR, no commit, and no named
 root cause: the fix belongs in the closed-source Copilot CLI server, so it is not publicly auditable.
 The nearest dated public confirmation that cache tokens actually flow is CLI v1.0.51 (2026-05-20).
 
-**`cache_control` in Copilot CLI.** A grep of the entire 3,083-line CLI changelog for
-`cache_control|breakpoint|ttl` returns **zero hits**. The claim that v1.0.78 marks the static prefix
-exists solely in the closing comment on [#4256](https://github.com/github/copilot-cli/issues/4256).
+**`cache_control` in Copilot CLI — downgraded C → D on 2026-09-10.** A grep of the entire 3,083-line CLI
+changelog for `cache_control|prompt caching|ephemeral|breakpoint|ttl` returns **zero hits across all 170
+versions**. The claim that v1.0.78 marks the static prefix exists solely in the closing comment on
+[#4256](https://github.com/github/copilot-cli/issues/4256).
+
+We previously graded that **C — "maintainer comment."** That was wrong. The account, `examon`, is a
+Microsoft `site_admin`, but **every comment it posts carries a trailing `<!-- copilot-reply:NNNN -->` or
+`<!-- auto-close:NNNN -->` marker — it is an agentic auto-close bot writing under a staff account.** A
+bot assertion is not a maintainer statement, so the grade is now **D**.
+
+Two mitigating facts, stated because they cut the other way: the bot's factual claims **check out**. Its
+*"broken out in `/usage` since v1.0.60"* matches changelog line 970 verbatim, and its `cli#4185` claim
+matches the v1.0.73 release note verbatim. And there is independent non-staff corroboration — a user's
+Fiddler capture on [#4185](https://github.com/github/copilot-cli/issues/4185) enumerates the CLI's five
+actual `cache_control` blocks (see [`reference/KNOWN-ISSUES.md`](reference/KNOWN-ISSUES.md)). **The
+capability is real; the grade reflects that GitHub has never documented it.**
+
+> [!WARNING]
+> **`author_association` is unreliable for GitHub and Microsoft staff.** Three employees with
+> `site_admin: true` appear as `author_association: NONE`. Any grade in this file that turns on "is this
+> person a maintainer?" must be verified with `gh api users/<login>`, not the association field. This
+> cuts both ways: it cost `#4256` a grade, and it *raised* our confidence in the `#3808` decay data,
+> which came from a Microsoft engineer we had read as an outside user.
 
 ## 4. Open issues, current state
 

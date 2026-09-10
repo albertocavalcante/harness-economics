@@ -106,6 +106,24 @@ legacy model until expiry. For those users there is no token price, so there is 
 figure to compare — and cache efficiency cannot reach their bill at all. This is a **structural
 incomparability**, not a measurement gap. No tooling closes it.
 
+**The same field name means different things.** This one silently corrupts arithmetic rather than
+blocking it. A GitHub maintainer, on
+[`copilot-sdk#1160`](https://github.com/github/copilot-sdk/issues/1160), 2026-04-30:
+
+> *"**Input tokens is the total covering all kinds of input, including cached.** Similarly output tokens
+> is the total covering all kinds of output, including reasoning."*
+
+Anthropic's API does the **opposite**: `input_tokens` **excludes** cached tokens, which are reported
+separately in `cache_read_input_tokens` and `cache_creation_input_tokens`
+([API docs](https://docs.claude.com/en/docs/build-with-claude/prompt-caching)).
+
+> [!CAUTION]
+> **`input_tokens + cache_read_tokens` is correct arithmetic for Anthropic and double-counting for
+> Copilot.** The field names are the same; the semantics are inverted. Any cost model that ports a
+> formula from one vendor to the other inflates or deflates the total without erroring. Copilot's own
+> SDK docs hedge on the unit too: *"treat GitHub's Copilot billing documentation as the source of truth
+> and verify before surfacing currency-like values to users."*
+
 **Different tokenizers.** Comparing raw token counts across vendors is meaningless arithmetic. Anthropic
 changed tokenizers within its own model line (Opus 4.7 tokenizes the same text to roughly 1.0–1.35× the
 Opus 4.6 count), so even intra-vendor token comparisons across model generations need re-baselining.

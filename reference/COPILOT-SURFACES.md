@@ -47,7 +47,8 @@ This is the table that matters. Same product name, three months apart.
 
 **Evidence quality differs as much as the dates.** The extension's caching behaviour is documented in a
 release note you can quote. The CLI's exists in the public record **only as a closing comment** on
-[`copilot-cli#4256`](https://github.com/github/copilot-cli/issues/4256) — graded **C** in
+[`copilot-cli#4256`](https://github.com/github/copilot-cli/issues/4256) — and that comment turns out to
+be **bot-authored** under a staff account, so it is graded **D** in
 [`../TIMELINE.md`](../TIMELINE.md).
 
 ## Telemetry arrived in the other order
@@ -66,6 +67,43 @@ The direction reverses, which is why "the extension is ahead" is also wrong:
 > **The CLI led the extension on cost visibility by about two months**, while trailing it by three on
 > caching itself. Neither surface is uniformly ahead. Any "Copilot's telemetry is X" claim has to say
 > which one, and as of when.
+
+## It is worse than three surfaces — the CLI diverges from itself
+
+[`copilot-cli#4720`](https://github.com/github/copilot-cli/issues/4720) (open, filed 2026-09-04) is the
+sharpest structural evidence available, because it controls for everything: **same binary, same machine,
+same model, 150 requests.**
+
+| Mode, on v1.0.82 | Cache hit rate | Session cost |
+|---|---|---|
+| BYOK | **0%** | **$61.21** |
+| GitHub subscription | works | — |
+| BYOK, on v1.0.80 | 97.7% | **$28.92** |
+
+> [!CAUTION]
+> **The BYOK and subscription request builders are different code paths with different cache behaviour
+> inside a single binary.** A "Copilot CLI v1.0.82" cost figure is *still* not a claim — you have to say
+> which auth mode. Roughly **$49 of avoidable spend in one session** turned on that distinction.
+
+Two more intra-CLI divergences worth knowing:
+
+- **Billing classification is inconsistent within the CLI itself.**
+  [`cli#2068`](https://github.com/github/copilot-cli/issues/2068) (open since 2026-03-16, **never
+  triaged**): compaction consumes a premium request but session naming — *also* a background operation —
+  does not. The reporter states the extension marks such requests agent-initiated via a caller-controlled
+  boolean and is not charged.
+- **Tool deferral is server-gated per model.**
+  [`cli#4588`](https://github.com/github/copilot-cli/issues/4588): a server-managed flag only returns
+  true for Claude, so `"hi"` costs **21.6k** tokens on sonnet-4.6, **47.6k** on gpt-5.4, and **61.9k** on
+  grok-4.6. **The client cannot influence this**, and no changelog records it.
+
+> [!NOTE]
+> **A caveat against over-claiming.** A VS Code stack trace on
+> [`cli#2496`](https://github.com/github/copilot-cli/issues/2496) resolves to
+> `github.copilot-chat-0.42.3/node_modules/@github/copilot/sdk/index.js` — **the extension bundles the
+> same `@github/copilot` SDK as the CLI.** So the accurate claim is not "separate implementations" but:
+> *they share the SDK core and diverge in the request-classification and billing-annotation layer above
+> it* — with `#4720` proving those layers already diverge inside one binary.
 
 ## The dating trap
 
