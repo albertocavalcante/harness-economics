@@ -83,6 +83,13 @@ direct verification against a local binary. See [`GAPS.md`](GAPS.md) §3.
 Cross-cutting conclusions are in [`SYNTHESIS.md`](SYNTHESIS.md). Method and its limits are in
 [`METHODOLOGY.md`](METHODOLOGY.md). What could not be determined is in [`GAPS.md`](GAPS.md).
 
+> [!NOTE]
+> **"So which one is cheaper?"** — [`SYNTHESIS.md` §2](SYNTHESIS.md) answers that head-on. Short
+> version: **not yet answerable**, because no measurements have been taken and the biggest cost driver
+> (the vendor system prompt) is closed on Copilot's side. Exactly one directional claim survives the
+> evidence, and it is narrow. That section also lists what cuts the *other* way, because a comparison
+> that only finds fault with one side is advocacy.
+
 **Quick references**, if you came here for a lookup rather than the argument:
 
 | | |
