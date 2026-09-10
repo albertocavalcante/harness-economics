@@ -24,6 +24,6 @@ ok "collector" "stopped and removed"
 
 SPANS="$STAGING/collector/spans.jsonl"
 if [ -s "$SPANS" ]; then
-  lines=$(wc -l < "$SPANS" | tr -d ' ')
+  lines=$(wc -l <"$SPANS" | tr -d ' ')
   ok "collector" "$lines span record(s) retained at $SPANS"
 fi

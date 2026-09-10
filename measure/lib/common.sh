@@ -41,7 +41,7 @@ die() {
 # require_cmd <cmd> — die with a clear message if <cmd> is not on PATH.
 require_cmd() {
   local cmd="$1"
-  if ! command -v "$cmd" > /dev/null 2>&1; then
+  if ! command -v "$cmd" >/dev/null 2>&1; then
     die "require_cmd" "'$cmd' not found in PATH — install it and re-run"
   fi
 }
@@ -87,7 +87,7 @@ utc_now() {
 # digest. Prefers sha256sum (Linux/coreutils); falls back to `shasum -a 256`
 # (macOS default, no coreutils required).
 sha256_of_stdin() {
-  if command -v sha256sum > /dev/null 2>&1; then
+  if command -v sha256sum >/dev/null 2>&1; then
     sha256sum | awk '{print $1}'
   else
     shasum -a 256 | awk '{print $1}'

@@ -19,7 +19,7 @@ VAR=""
 VAL_A=""
 VAL_B=""
 REPS=5
-TASK="T2"   # moderate cost by default — see usage note below
+TASK="T2" # moderate cost by default — see usage note below
 
 usage() {
   cat <<'USAGE'
@@ -38,19 +38,40 @@ USAGE
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --var) VAR="$2"; shift 2 ;;
-    --a) VAL_A="$2"; shift 2 ;;
-    --b) VAL_B="$2"; shift 2 ;;
-    --reps) REPS="$2"; shift 2 ;;
-    --task) TASK="$2"; shift 2 ;;
-    -h|--help) usage; exit 0 ;;
+    --var)
+      VAR="$2"
+      shift 2
+      ;;
+    --a)
+      VAL_A="$2"
+      shift 2
+      ;;
+    --b)
+      VAL_B="$2"
+      shift 2
+      ;;
+    --reps)
+      REPS="$2"
+      shift 2
+      ;;
+    --task)
+      TASK="$2"
+      shift 2
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
     *) die "ab" "unknown argument: $1" ;;
   esac
 done
 
-[ -n "$VAR" ] || { usage; die "ab" "--var is required"; }
-case "$VAR" in model|mcp|system-prompt) ;; *) die "ab" "--var must be one of model, mcp, system-prompt" ;; esac
-case "$REPS" in ''|*[!0-9]*) die "ab" "--reps must be a positive integer, got '$REPS'" ;; esac
+[ -n "$VAR" ] || {
+  usage
+  die "ab" "--var is required"
+}
+case "$VAR" in model | mcp | system-prompt) ;; *) die "ab" "--var must be one of model, mcp, system-prompt" ;; esac
+case "$REPS" in '' | *[!0-9]*) die "ab" "--reps must be a positive integer, got '$REPS'" ;; esac
 [ "$REPS" -ge 1 ] || die "ab" "--reps must be >= 1"
 
 claude_preflight
@@ -128,14 +149,14 @@ for ((i = 0; i < REPS; i++)); do
     cost_a="$(printf '%s' "$rep_a" | jq -r '.total_cost_usd')"
     cost_b="$(printf '%s' "$rep_b" | jq -r '.total_cost_usd')"
     diff="$(awk -v a="$cost_a" -v b="$cost_b" 'BEGIN{printf "%.10f", b - a}')"
-    echo "$diff" >> "$diffs_file"
+    echo "$diff" >>"$diffs_file"
     echo "  rep $i paired diff (B-A, total_cost_usd): $diff" >&2
   else
     echo "  rep $i excluded from paired diff — A valid=$valid_a B valid=$valid_b" >&2
   fi
 done
 
-n_pairs="$(wc -l < "$diffs_file" | tr -d ' ')"
+n_pairs="$(wc -l <"$diffs_file" | tr -d ' ')"
 if [ "$n_pairs" -lt 2 ]; then
   fail "ab" "fewer than 2 valid pairs ($n_pairs) — skipping bootstrap CI"
   mean_delta="n/a"
@@ -172,24 +193,25 @@ else
   )
 fi
 
-measurement="$(jq -n \
-  --arg schema_version "1" \
-  --arg timestamp_utc "$(utc_now)" \
-  --arg harness "claude" \
-  --arg harness_version "$(claude_version)" \
-  --arg workload "$TASK" \
-  --arg var "$VAR" \
-  --arg a "$VAL_A" \
-  --arg b "$VAL_B" \
-  --arg os "$(uname -s)" \
-  --arg arch "$(uname -m)" \
-  --argjson reps_a "$reps_a" \
-  --argjson reps_b "$reps_b" \
-  --arg mean_delta "$mean_delta" \
-  --arg ci_low "$ci_low" \
-  --arg ci_high "$ci_high" \
-  --argjson n_pairs "$n_pairs" \
-  '{
+measurement="$(
+  jq -n \
+    --arg schema_version "1" \
+    --arg timestamp_utc "$(utc_now)" \
+    --arg harness "claude" \
+    --arg harness_version "$(claude_version)" \
+    --arg workload "$TASK" \
+    --arg var "$VAR" \
+    --arg a "$VAL_A" \
+    --arg b "$VAL_B" \
+    --arg os "$(uname -s)" \
+    --arg arch "$(uname -m)" \
+    --argjson reps_a "$reps_a" \
+    --argjson reps_b "$reps_b" \
+    --arg mean_delta "$mean_delta" \
+    --arg ci_low "$ci_low" \
+    --arg ci_high "$ci_high" \
+    --argjson n_pairs "$n_pairs" \
+    '{
     schema_version: $schema_version,
     timestamp_utc: $timestamp_utc,
     harness: $harness,
@@ -233,7 +255,7 @@ measurement="$(jq -n \
 )"
 
 out_file="$STAGING/runs/$(date -u +%Y%m%dT%H%M%SZ)-ab-${VAR}.json"
-printf '%s\n' "$measurement" > "$out_file"
+printf '%s\n' "$measurement" >"$out_file"
 ok "ab" "wrote $out_file"
 
 echo ""

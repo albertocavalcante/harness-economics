@@ -47,9 +47,9 @@ emit_measurement() {
   local priming="${3:?emit_measurement: priming required (true|false)}"
 
   jq --argjson rep_index "$rep_index" \
-     --argjson valid "$valid" \
-     --argjson priming "$priming" \
-     '
+    --argjson valid "$valid" \
+    --argjson priming "$priming" \
+    '
     {
       rep: $rep_index,
       valid: $valid,

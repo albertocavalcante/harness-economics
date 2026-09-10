@@ -40,8 +40,10 @@ load_task() {
 # subscription would have billed for the same work. Do not present these
 # numbers as subscription-equivalent cost.
 call_claude() {
-  local fixture_dir="$1"; shift
-  local prompt="$1"; shift
+  local fixture_dir="$1"
+  shift
+  local prompt="$1"
+  shift
   claude -p "$prompt" \
     --output-format json \
     --bare \

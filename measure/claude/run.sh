@@ -32,19 +32,40 @@ USAGE
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --task) TASK="$2"; shift 2 ;;
-    --reps) REPS="$2"; shift 2 ;;
-    --mode) MODE="$2"; shift 2 ;;
-    --model) MODEL="$2"; shift 2 ;;
-    --label) LABEL="$2"; shift 2 ;;
-    -h|--help) usage; exit 0 ;;
+    --task)
+      TASK="$2"
+      shift 2
+      ;;
+    --reps)
+      REPS="$2"
+      shift 2
+      ;;
+    --mode)
+      MODE="$2"
+      shift 2
+      ;;
+    --model)
+      MODEL="$2"
+      shift 2
+      ;;
+    --label)
+      LABEL="$2"
+      shift 2
+      ;;
+    -h | --help)
+      usage
+      exit 0
+      ;;
     *) die "run" "unknown argument: $1" ;;
   esac
 done
 
-[ -n "$TASK" ] || { usage; die "run" "--task is required"; }
-case "$MODE" in cold|warm) ;; *) die "run" "--mode must be 'cold' or 'warm', got '$MODE'" ;; esac
-case "$REPS" in ''|*[!0-9]*) die "run" "--reps must be a positive integer, got '$REPS'" ;; esac
+[ -n "$TASK" ] || {
+  usage
+  die "run" "--task is required"
+}
+case "$MODE" in cold | warm) ;; *) die "run" "--mode must be 'cold' or 'warm', got '$MODE'" ;; esac
+case "$REPS" in '' | *[!0-9]*) die "run" "--reps must be a positive integer, got '$REPS'" ;; esac
 [ "$REPS" -ge 1 ] || die "run" "--reps must be >= 1"
 
 # Preflight — refuse to run in a degraded environment rather than emitting a
@@ -90,7 +111,7 @@ run_one_task() {
     raw="$(call_claude "$FIXTURE_DIR" "$TASK_PROMPT" "${claude_args[@]}")"
 
     if [ "$RAW_CAPTURE" = "1" ]; then
-      printf '%s' "$raw" | redact_stream > "$STAGING/raw/${task_id}-rep${i}.json"
+      printf '%s' "$raw" | redact_stream >"$STAGING/raw/${task_id}-rep${i}.json"
     fi
 
     # An agent that gives up early, refuses, or answers a different question
@@ -130,19 +151,20 @@ run_one_task() {
   ')"
 
   local measurement
-  measurement="$(jq -n \
-    --arg schema_version "1" \
-    --arg timestamp_utc "$(utc_now)" \
-    --arg harness "claude" \
-    --arg harness_version "$(claude_version)" \
-    --arg workload "$task_id" \
-    --arg model "${MODEL:-default}" \
-    --arg cache_mode "$MODE" \
-    --arg os "$(uname -s)" \
-    --arg arch "$(uname -m)" \
-    --argjson reps "$reps_json" \
-    --argjson aggregates "$aggregates" \
-    '{
+  measurement="$(
+    jq -n \
+      --arg schema_version "1" \
+      --arg timestamp_utc "$(utc_now)" \
+      --arg harness "claude" \
+      --arg harness_version "$(claude_version)" \
+      --arg workload "$task_id" \
+      --arg model "${MODEL:-default}" \
+      --arg cache_mode "$MODE" \
+      --arg os "$(uname -s)" \
+      --arg arch "$(uname -m)" \
+      --argjson reps "$reps_json" \
+      --argjson aggregates "$aggregates" \
+      '{
       schema_version: $schema_version,
       timestamp_utc: $timestamp_utc,
       harness: $harness,
@@ -158,7 +180,7 @@ run_one_task() {
 
   local out_file
   out_file="$STAGING/runs/$(date -u +%Y%m%dT%H%M%SZ)-${task_id}${LABEL:+-$LABEL}.json"
-  printf '%s\n' "$measurement" > "$out_file"
+  printf '%s\n' "$measurement" >"$out_file"
   ok "run" "wrote $out_file"
 
   print_summary "$task_id" "$measurement"

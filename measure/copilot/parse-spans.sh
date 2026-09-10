@@ -20,7 +20,10 @@ LABEL="copilot"
 shift || true
 while [ $# -gt 0 ]; do
   case "$1" in
-    --label) LABEL="${2:-copilot}"; shift 2 ;;
+    --label)
+      LABEL="${2:-copilot}"
+      shift 2
+      ;;
     *) die "parse-spans" "unknown argument: $1" ;;
   esac
 done
@@ -64,9 +67,9 @@ SPAN_ROWS=$(
     ( .resourceSpans // [] )[]
     | ( .scopeSpans // [] )[]
     | ( .spans // [] )[]
-  ' "$SPANS" 2>/dev/null \
-  | jq -c "$ATTR_QUERY" \
-  | jq -c 'select(.span_name == "chat" or .span_name == "invoke_agent")'
+  ' "$SPANS" 2>/dev/null |
+    jq -c "$ATTR_QUERY" |
+    jq -c 'select(.span_name == "chat" or .span_name == "invoke_agent")'
 ) || die "parse-spans" "could not parse $SPANS as OTLP JSON lines"
 
 if [ -z "$SPAN_ROWS" ]; then
@@ -115,15 +118,15 @@ jq -n \
       total_reps: null
     },
     environment: { os: "'"$(uname -s)"'", arch: "'"$(uname -m)"'" }
-  }' > "$OUT"
+  }' >"$OUT"
 
 echo
 printf '%-24s %10s\n' FIELD VALUE
-printf '%-24s %10s\n' "spans"           "$(echo "$AGG" | jq -r .spans)"
-printf '%-24s %10s\n' "input tokens"    "$(echo "$AGG" | jq -r .input)"
-printf '%-24s %10s\n' "output tokens"   "$(echo "$AGG" | jq -r .output)"
-printf '%-24s %10s\n' "cache read"      "$(echo "$AGG" | jq -r .cache_read)"
-printf '%-24s %10s\n' "cache creation"  "$(echo "$AGG" | jq -r .cache_creation)"
+printf '%-24s %10s\n' "spans" "$(echo "$AGG" | jq -r .spans)"
+printf '%-24s %10s\n' "input tokens" "$(echo "$AGG" | jq -r .input)"
+printf '%-24s %10s\n' "output tokens" "$(echo "$AGG" | jq -r .output)"
+printf '%-24s %10s\n' "cache read" "$(echo "$AGG" | jq -r .cache_read)"
+printf '%-24s %10s\n' "cache creation" "$(echo "$AGG" | jq -r .cache_creation)"
 printf '%-24s %10s\n' "cache read ratio" "$(echo "$AGG" | jq -r '.cache_read_ratio | . * 1000 | round / 1000')"
 echo
 

@@ -33,7 +33,7 @@ if podman container exists "$CONTAINER" 2>/dev/null; then
 fi
 
 cp "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/otelcol.yaml" "$COLLECTOR_DIR/otelcol.yaml"
-: > "$COLLECTOR_DIR/spans.jsonl"
+: >"$COLLECTOR_DIR/spans.jsonl"
 
 podman run -d \
   --name "$CONTAINER" \
