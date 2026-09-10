@@ -29,10 +29,10 @@ flowchart TD
     A --> B --> C --> D
     A -. "a byte changed here<br/>invalidates all of this" .-> D
 
-    style A fill:#fde2e2,stroke:#c33
-    style B fill:#fdeee2,stroke:#c83
-    style C fill:#fdf9e2,stroke:#aa3
-    style D fill:#e6f5e6,stroke:#3a3
+    style A fill:#fde2e2,stroke:#c33,color:#1f2937
+    style B fill:#fdeee2,stroke:#c83,color:#1f2937
+    style C fill:#fdf9e2,stroke:#aa3,color:#1f2937
+    style D fill:#e6f5e6,stroke:#3a3,color:#1f2937
 ```
 
 Volatility increases downward; blast radius decreases. **The cheapest place for changing content is the
@@ -57,6 +57,7 @@ free and then quietly is not.
 | The short answer on **which is cheaper** | [`SYNTHESIS.md` §2](SYNTHESIS.md) |
 | To look up **a setting** | [`reference/SETTINGS.md`](reference/SETTINGS.md) |
 | To check **a known bug or its workaround** | [`reference/KNOWN-ISSUES.md`](reference/KNOWN-ISSUES.md) |
+| To know **which "Copilot" a claim is about** | [`reference/COPILOT-SURFACES.md`](reference/COPILOT-SURFACES.md) |
 | **When a feature shipped**, with a link | [`TIMELINE.md`](TIMELINE.md) |
 | The **full argument**, subsystem by subsystem | [the seven tracks](#the-seven-tracks) |
 | To **run the measurements** | [Measure it yourself](#measure-it-yourself) |

@@ -18,9 +18,10 @@ matters, it is flagged inline.
    re-sent payload can be served from cache, not by how much is new.
 2. Claude Code targets **one provider family**. It can hard-code a caching strategy against Anthropic's
    explicit `cache_control` breakpoints and design the whole request shape around them.
-3. Copilot targets **six providers** with two incompatible caching paradigms — explicit breakpoints
-   (Anthropic) and automatic prefix inference (OpenAI). Its request layer is an abstraction over that
-   difference, which is a materially harder engineering problem and produces different tradeoffs.
+3. Copilot targets **six providers**. When its request layer was built those spanned two incompatible
+   caching paradigms — explicit breakpoints (Anthropic) and automatic inference (OpenAI) — a materially
+   harder problem. **That gap closed in July 2026** when OpenAI shipped explicit caching with the same
+   four-breakpoint budget and the same economics (§3).
 4. The single most consequential decision in both is **ordering by rate of change**: content that
    rarely changes goes first, volatile content goes last. Everything in track 02 follows from this.
 5. Claude Code's system prompt embeds machine-local facts (working directory, platform, shell, OS
@@ -69,10 +70,10 @@ flowchart TD
     A --> B --> C --> D
     A -. "a byte changed here<br/>invalidates all of this" .-> D
 
-    style A fill:#fde2e2,stroke:#c33
-    style B fill:#fdeee2,stroke:#c83
-    style C fill:#fdf9e2,stroke:#aa3
-    style D fill:#e6f5e6,stroke:#3a3
+    style A fill:#fde2e2,stroke:#c33,color:#1f2937
+    style B fill:#fdeee2,stroke:#c83,color:#1f2937
+    style C fill:#fdf9e2,stroke:#aa3,color:#1f2937
+    style D fill:#e6f5e6,stroke:#3a3,color:#1f2937
 ```
 
 Read it top to bottom as increasing volatility and decreasing blast radius. **The cheapest place to put

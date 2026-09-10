@@ -17,7 +17,8 @@ invariant, stated once and then applied repeatedly.
 3. Break-even is **one reuse** at 5m TTL, **two** at 1h. The longer TTL is not free.
 4. Claude Code publishes an exhaustive invalidation catalogue and gives you TTL controls. Copilot
    publishes neither and gives you none.
-5. Copilot has one lever Claude Code structurally cannot match: OpenAI's **24-hour** cache retention.
+5. **Retracted:** we called OpenAI's 24-hour retention a lever Claude Code could not match. It rests on
+   one blog sentence (§3.2), and OpenAI's current explicit mode caps TTL at `30m` (§2).
 6. Claude Code's cache is scoped **per machine and per directory** — narrower than most users assume.
 
 ---
@@ -266,10 +267,10 @@ flowchart TD
     Q -->|"/rewind"| WARM["READS AN OLDER WARM ENTRY<br/>cheaper than /compact"]
     Q -->|"/compact"| PART["CONVERSATION LAYER REBUILT<br/>system prompt still cache-hits"]
 
-    style FULL fill:#fde2e2,stroke:#c33
-    style SAFE fill:#e6f5e6,stroke:#3a3
-    style WARM fill:#e6f5e6,stroke:#3a3
-    style PART fill:#fdf9e2,stroke:#aa3
+    style FULL fill:#fde2e2,stroke:#c33,color:#1f2937
+    style SAFE fill:#e6f5e6,stroke:#3a3,color:#1f2937
+    style WARM fill:#e6f5e6,stroke:#3a3,color:#1f2937
+    style PART fill:#fdf9e2,stroke:#aa3,color:#1f2937
     style INERT fill:#eee,stroke:#999
 ```
 
