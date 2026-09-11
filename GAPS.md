@@ -103,12 +103,31 @@ These are not access problems. No amount of tooling closes them.
 
 | Item | Confidence | Why |
 |---|---|---|
-| Copilot system prompt byte count | **High** (that it's closed) | Not published; spans carry no prompt content |
-| Copilot tool-definition byte count | **High** | Same |
+| ~~Copilot system prompt byte count~~ | **Retracted 2026-09-11** | **Measurable, not closed — see below** |
+| ~~Copilot tool-definition byte count~~ | **Retracted 2026-09-11** | **Measurable, not closed — see below** |
 | Copilot's full cache-invalidation catalogue | **High** | Not published. Only three behaviours are inferable from GitHub's own posts |
 | Copilot compaction threshold and trigger policy | **High** | Not published |
 | Copilot core-toolset membership and deferral threshold | **High** | Not published |
 | Whether Copilot applies a margin on provider list price | **High** | Not published |
+
+> [!WARNING]
+> **Two rows retracted on 2026-09-11.** We asserted Copilot's system prompt and tool-definition byte
+> counts were unmeasurable because *"spans carry no prompt content"*. That is false when content
+> capture is enabled. `github.copilot.chat.otel.captureContent` (VS Code) and
+> `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` (CLI) populate
+> **`gen_ai.system_instructions`** and **`gen_ai.tool.definitions`** — which *are* the system prompt
+> and the tool block. Both default to `false`, so the data is opt-in rather than absent.
+>
+> These are therefore **§3 items (need a Copilot seat)**, not §4 items (closed by the vendor). The
+> distinction matters: §4 says no tooling closes it, and tooling does.
+>
+> Three open defects mean the flag is not a reliable privacy control either — content has been
+> observed exporting with `captureContent=false`
+> ([vscode#307407](https://github.com/microsoft/vscode/issues/307407),
+> [#326254](https://github.com/microsoft/vscode/issues/326254)), and tool arguments and results are
+> reported to export **unconditionally**
+> ([#325720](https://github.com/microsoft/vscode/issues/325720)). Anyone enabling Copilot telemetry
+> should assume prompt content may leave the machine regardless of the setting.
 
 Anthropic publishes an exhaustive invalidation catalogue and Claude Code's system prompt composition.
 GitHub publishes neither. **That asymmetry in disclosure is itself a finding** — a user can reason
