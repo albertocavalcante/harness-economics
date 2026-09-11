@@ -56,13 +56,29 @@ def cache_read_share(
     return cache_read / denominator
 
 
-def share_from_reps(reps: Sequence[Rep], semantics: TokenSemantics) -> float | None:
-    """cache_read_share over a set of already-projected reps."""
+def share_from_reps(
+    reps: Sequence[Rep],
+    semantics: TokenSemantics,
+    coverage: float | None = None,
+) -> float | None:
+    """cache_read_share over a set of already-projected reps.
+
+    `coverage` is REQUIRED in practice even though it defaults to None. It cannot
+    be derived from `reps`: the projection coerces a missing cache_read to 0.0, so
+    by this point "the meter said nothing" and "the meter said zero" are already
+    indistinguishable. It has to be measured from the raw payloads and threaded in.
+
+    This parameter did not exist until 2026-09-11, which meant the guard in
+    cache_read_share() was dead on the Claude path — a run with half its cache
+    attributes missing still published a confident number. The suite missed it
+    because it exercised cache_read_share() directly and never this call site.
+    """
     return cache_read_share(
         cache_read=sum(r.usage.cache_read_input_tokens for r in reps),
         cache_creation=sum(r.usage.cache_creation_input_tokens for r in reps),
         input_tokens=sum(r.usage.input_tokens for r in reps),
         semantics=semantics,
+        coverage=coverage,
     )
 
 

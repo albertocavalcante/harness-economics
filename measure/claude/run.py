@@ -49,7 +49,9 @@ def _aggregate(reps: list[Rep], coverage_flags: list[bool]) -> dict[str, Any]:
     coverage = (sum(coverage_flags) / len(coverage_flags)) if coverage_flags else None
 
     return {
-        "cache_read_share": share_from_reps(valid, TokenSemantics.EXCLUDES_CACHE_READ),
+        "cache_read_share": share_from_reps(
+            valid, TokenSemantics.EXCLUDES_CACHE_READ, coverage=coverage
+        ),
         "cache_attr_coverage": coverage,
         "mean_cost_usd": mean([r.total_cost_usd for r in valid]),
         "mean_input_tokens": mean([r.usage.input_tokens for r in valid]),

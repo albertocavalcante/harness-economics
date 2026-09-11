@@ -428,8 +428,10 @@ as test cases.
 > meaningful `cache_creation_input_tokens: 0` with the derived sum of the two ephemerals. Every
 > coercion is an explicit `is None` check.
 
-This repo's measurements of real hit rate under controlled conditions live in
+Measurements of real hit rate under controlled conditions, **where we have them**, land in
 [`../measurements/`](../measurements/); the protocol is in [`../METHODOLOGY.md`](../METHODOLOGY.md).
+As of 2026-09-11 that directory holds no results — the harness ships before its first run, and every
+number on this page is a citation or arithmetic.
 
 ## 8. What we could not determine
 

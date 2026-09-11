@@ -7,10 +7,14 @@ evidence-graded and a measurement harness you can run yourself.
 **Compiled:** 2026-09-10 · ~25,300 words across 7 tracks · 193 inline citations · CC0
 
 > [!WARNING]
-> **No Copilot seat was available on the research machine, so every Copilot claim here is
-> documentation-derived rather than observed.** Claude Code claims include direct verification against a
-> local binary. This is the largest limitation of the current edition — stated here rather than buried.
-> Details and the path to closing it: [`GAPS.md` §3](GAPS.md).
+> **Nothing here has been measured. Every cost statement is a citation or arithmetic, never an
+> observation.** This repo ships a measurement harness before its first results; `measurements/` is
+> empty.
+>
+> Two separate limits, both worth knowing before you read a number:
+> **(1)** No Copilot seat was available, so every Copilot claim is documentation-derived
+> ([`GAPS.md` §3](GAPS.md)). **(2)** Claude Code claims are verified against a local binary and its
+> changelog — which is stronger than the Copilot side, but is still reading, not running.
 
 ---
 

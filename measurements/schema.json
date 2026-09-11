@@ -56,9 +56,10 @@
       "type": "string",
       "enum": [
         "cold",
-        "warm"
+        "warm",
+        "mixed"
       ],
-      "description": "cold: reps spaced past the prompt-cache TTL. warm: reps run back-to-back, first rep discarded as a priming run."
+      "description": "cold: reps spaced past the prompt-cache TTL. warm: reps run back-to-back, first rep discarded as a priming run. `mixed` when an A/B run's arms differ in cache mode."
     },
     "reps": {
       "type": "array",
@@ -284,6 +285,24 @@
             "null"
           ],
           "minimum": 0
+        },
+        "invalid_rep_rate_a": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Per-arm invalid-rep rate. Pooling both arms halves the apparent failure rate of a config that fails in only one, which is exactly the signal an A/B exists to surface."
+        },
+        "invalid_rep_rate_b": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Per-arm invalid-rep rate. Pooling both arms halves the apparent failure rate of a config that fails in only one, which is exactly the signal an A/B exists to surface."
         }
       }
     },

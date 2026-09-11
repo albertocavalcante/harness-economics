@@ -22,6 +22,9 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck disable=SC1091 source=../lib/common.sh
 source "$REPO_ROOT/measure/lib/common.sh"
 
+# Fixed. Changing the seed changes filler bytes only — it does not touch any of
+# the embedded facts below, so task EXPECTED values never need to change. It does
+# change the tree digest, so FIXTURE_EXPECTED_SHA256 must move with it.
 FIXTURE_SEED=20260910
 
 # The digest this generator is expected to produce, pinned in git.
@@ -35,9 +38,7 @@ FIXTURE_SEED=20260910
 # If you deliberately change the generator, update this AND say so in
 # CHANGELOG.md: every measurement taken before the change was made against a
 # different corpus and is not comparable to ones taken after.
-FIXTURE_EXPECTED_SHA256=ae4539f6cdf061026b69d4daa8a05667af50e6c8f9a077e3d845d416ce1b1c2a # fixed. Changing this changes filler bytes only —
-# it does not touch any of the embedded facts below,
-# so task EXPECTED values never need to change.
+FIXTURE_EXPECTED_SHA256=7f3db4104ef708ec0ef176bb5f0f4c7024ac6aeecafc480156fd47ad13036eac
 
 # --- embedded facts -----------------------------------------------------
 # These constants are the single source of truth for every fixture task's
@@ -80,9 +81,19 @@ WORDS=(alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu
   invoice batch ridge basin quorum vector matrix kernel)
 
 LCG_STATE=$FIXTURE_SEED
+
+# Advances LCG_STATE in the CALLER's shell. It must not echo, and callers must
+# not wrap it in $(...).
+#
+# It did both until 2026-09-11, and the result was silent: `$(lcg_next)` runs the
+# function in a subshell, so the assignment never reached the parent. Every call
+# returned the same first value, and the generator emitted 3,670 byte-identical
+# filler lines — `// note: token token handles case 1311` — instead of the varied
+# corpus the word list and the LCG exist to produce. The fixture still hashed
+# deterministically, so `--verify` was perfectly happy; determinism and
+# correctness are different properties.
 lcg_next() {
   LCG_STATE=$(((LCG_STATE * 1103515245 + 12345) % 2147483648))
-  echo "$LCG_STATE"
 }
 
 # pad_comment_lines <n> <comment_prefix>  — print n deterministic filler
@@ -91,9 +102,12 @@ lcg_next() {
 pad_comment_lines() {
   local n="$1" prefix="$2" i idx1 idx2 num
   for ((i = 0; i < n; i++)); do
-    idx1=$(($(lcg_next) % ${#WORDS[@]}))
-    idx2=$(($(lcg_next) % ${#WORDS[@]}))
-    num=$(($(lcg_next) % 10000))
+    lcg_next
+    idx1=$((LCG_STATE % ${#WORDS[@]}))
+    lcg_next
+    idx2=$((LCG_STATE % ${#WORDS[@]}))
+    lcg_next
+    num=$((LCG_STATE % 10000))
     printf '%s note: %s %s handles case %d\n' "$prefix" "${WORDS[$idx1]}" "${WORDS[$idx2]}" "$num"
   done
 }

@@ -16,7 +16,12 @@ from typing import Any, Final, final
 
 from measure.lib.staging import STAGING, die, repo_root, require_cmd, require_free_space
 
-TASK_IDS: Final = ("T1", "T2", "T3", "T4")
+# T5 is the long-horizon task. T1-T4 all finish in roughly 2-7 turns, so
+# cache_read_share over them mostly measures "does the system prompt cache" --
+# real, but nearly independent of the workload. T5 chains two sub-problems in
+# one session so the conversation prefix actually grows across turns, which is
+# the regime the repo's break-even arithmetic is about.
+TASK_IDS: Final = ("T1", "T2", "T3", "T4", "T5")
 
 # Deliberate: --bare strips hooks, LSP, plugin sync, auto-memory and CLAUDE.md
 # discovery, so the only variable between reps is the prompt and the fixture

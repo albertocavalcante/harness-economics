@@ -19,20 +19,32 @@ out='measurements/SUMMARY.md'
   if [ "${#files[@]}" -eq 0 ]; then
     echo "No measurements have been recorded yet."
   else
-    echo "| Date | Harness | Workload | Cache-read ratio | Invalid-rep rate | Source file |"
-    echo "|---|---|---|---|---|---|"
+    # Coverage sits immediately beside the share on purpose. schema.json says
+    # "Treat coverage < 1 as an unusable measurement, not a frugal one" — a table
+    # that prints the share without it invites exactly the misreading the field
+    # exists to prevent.
+    echo "| Date | Harness | Surface | Workload | Cache-read share | Coverage | Invalid-rep rate | Source file |"
+    echo "|---|---|---|---|---|---|---|---|"
     for f in "${files[@]}"; do
       jq -r --arg src "$f" '
         [
           (.timestamp_utc // "unknown"),
           (.harness // "unknown"),
+          (.source_surface // "unknown"),
           (if (.workload | type) == "object" then (.workload.id // "unknown") else (.workload // "unknown") end),
+          # null share and absent share both render "n/a"; the coverage column
+          # is what disambiguates "meter was silent" from "nothing to divide".
           (.aggregates.cache_read_share // "n/a" | tostring),
+          (.aggregates.cache_attr_coverage // "n/a" | tostring),
           (.aggregates.invalid_rep_rate // "n/a" | tostring),
           $src
         ] | "| " + join(" | ") + " |"
       ' "$f"
     done
+    echo
+    echo "**Coverage below 1.0 means the meter was silent on some calls.**"
+    echo "A share computed from incomplete coverage is withheld, not estimated —"
+    echo "see \`aggregates.cache_attr_coverage\` in [\`schema.json\`](schema.json)."
   fi
 } >"$out"
 echo "✓ summary: wrote $out"
