@@ -14,20 +14,43 @@ most useful answer in the document.
 
 ## 1. Metric names with no public evidence
 
+> [!NOTE]
+> **Closed 2026-09-11 by static analysis of the binary.** The answer is not the one we expected: three
+> of the four are **dead code**, and the fourth is a span, not a metric.
+
 | Item | Confidence | Status |
 |---|---|---|
-| `claude_code.compaction`, `.mcp.rpc`, `.subagent.spawn`, `.tool.execution` | **Low** | **Unconfirmed — do not build on these** |
+| `claude_code.subagent.spawn`, `.bash.subprocess`, `.compaction`, `.mcp.rpc` | **High** | **Dead code in v2.1.220 — never emitted** |
+| `claude_code.tool.execution` | **High** | **A span, not a metric.** Emitted under the beta trace gate |
 
-These four names appear in string inspection of the v2.1.220 binary. They appear **nowhere** in
-Anthropic's telemetry documentation, and nowhere in the changelog through v2.1.267 — which *does*
-announce comparable metrics (`claude_code.llm_request` and `.active_time.total` at v2.1.139,
-`claude_code.tool` spans at v2.1.145, `.assistant_response` at v2.1.193).
+All four dead names are constructed through a helper that is gated on `Ebe()`, and in the shipped
+v2.1.220 bundle that function is a constant:
 
-A string in a binary establishes that the name exists in the artifact. It does not establish that the
-metric is emitted, that it is enabled by default, or what its attributes are. The `trigger: auto|manual`
-and `message_count` attributes cited in track 03 §2.6 rest on the same weak basis.
+```js
+function Ebe(){return!1}          // verified by string extraction, 2026-09-11
+function BVr(e,t){if(!Ebe())return; …}
+```
 
-*To close:* run a session against a local OTLP collector and see whether they appear.
+Every call site is therefore unreachable. They are **span** names, not metric names, and they are
+undocumented — so they must not appear in a dashboard. Which version flips `Ebe()` is **unverified**;
+no changelog entry announces it.
+
+The live gate is a different function — `function bie(){return yes()||zH()}` — where `yes()` reads
+`CLAUDE_CODE_ENHANCED_TELEMETRY_BETA`. Spans under *that* gate do emit on v2.1.220:
+`claude_code.interaction` (root, one per prompt) → `.llm_request`, `.tool`, `.tool.execution`,
+`.tool.blocked_on_user`, and `.hook`.
+
+**The real metric inventory is exactly eight**, and none of the four are in it: `session.count`,
+`lines_of_code.count`, `pull_request.count`, `commit.count`, `cost.usage`, `token.usage`,
+`code_edit_tool.decision`, `active_time.total`.
+
+> [!WARNING]
+> **Consequence for track 03 §2.6.** The `trigger: auto|manual` and `message_count` attributes cited
+> there come from the dead `claude_code.compaction` span. They exist in the artifact and are
+> unreachable in this build. Treat that section as describing an unshipped code path.
+
+**A string in a binary establishes that a name exists in the artifact. It does not establish that
+anything emits it.** That was the right caution; static analysis resolved it without a paid run.
 
 ### 1b. Miss-cause attribution — mostly resolved
 
